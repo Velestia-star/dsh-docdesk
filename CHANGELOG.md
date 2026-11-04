@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2 — 2026-11-04
+
+- Anchored the folder hover tooltip to the folder's actual screen rectangle: it now appears below the full icon and label (or above when there is no room), so the folder name and its counts no longer overlap the folder content.
+
 ## 0.3.1 — 2026-11-04
 
 - File drops now insert relative to the icon under the drag rather than forcing a slot swap; groups insert after the target in their original order, and dropping between two icons inserts at that gap. Target detection uses icon-overlap area, so it switches like desktop icons when the dragged icon is halfway over another.

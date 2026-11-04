@@ -3323,7 +3323,8 @@ body.dsd-immersive { overflow:hidden !important; }
                   window.clearTimeout(folderTipTimer.current)
                   const tipX = event.clientX
                   const tipY = event.clientY
-                  folderTipTimer.current = window.setTimeout(() => setFolderTip({ id: entry.id, x: tipX, y: tipY, entryX: entry.x, entryY: entry.y }), 1000)
+                  const tipRect = event.currentTarget.getBoundingClientRect()
+                  folderTipTimer.current = window.setTimeout(() => setFolderTip({ id: entry.id, x: tipX, y: tipY, entryLeft: tipRect.left, entryTop: tipRect.top, entryBottom: tipRect.bottom }), 1000)
                 }
               : undefined,
             onPointerLeave: entry.kind === 'folder'
@@ -4063,6 +4064,12 @@ body.dsd-immersive { overflow:hidden !important; }
             files: Object.values(library.items).filter((item) => (item.folderId ?? null) === folderTipFolder.id).length,
           }
         : null
+      const folderTipLeft = folderTip
+        ? clamp(Number.isFinite(folderTip.entryLeft) ? folderTip.entryLeft : folderTip.x + 12, 8, window.innerWidth - 240)
+        : 0
+      const folderTipBelow = folderTip ? (Number.isFinite(folderTip.entryBottom) ? folderTip.entryBottom + 8 : folderTip.y + 18) : 0
+      const folderTipAbove = folderTip ? (Number.isFinite(folderTip.entryTop) ? folderTip.entryTop - 68 : folderTip.y - 52) : 0
+      const folderTipTop = clamp(folderTipBelow > window.innerHeight - 76 ? folderTipAbove : folderTipBelow, 8, window.innerHeight - 76)
       const dragHintEntry = drag && dropFolder ? allEntries.find((entry) => entry.kind === 'folder' && entry.id === dropFolder) || null : null
       const dragHintGroup = drag ? dragRef.current?.group || [] : []
       const dragHintText = dragHintGroup.length === 1 && dragHintGroup[0].kind === 'folder' ? t('drag.hintFolder') : t('drag.hintGroup')
@@ -4253,8 +4260,8 @@ body.dsd-immersive { overflow:hidden !important; }
               {
                 className: 'dsd-folder-tip',
                 style: {
-                  left: `${clamp(Number.isFinite(folderTip.entryX) ? folderTip.entryX : folderTip.x + 12, 8, window.innerWidth - 240)}px`,
-                  top: `${clamp(Number.isFinite(folderTip.entryY) ? folderTip.entryY + ICON_H + 8 : folderTip.y + 16, 8, window.innerHeight - 76)}px`,
+                  left: `${folderTipLeft}px`,
+                  top: `${folderTipTop}px`,
                 },
               },
               h('strong', null, folderTipFolder.name),
