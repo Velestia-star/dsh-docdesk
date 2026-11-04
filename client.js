@@ -13,6 +13,43 @@ window.__ModuleLoader__.load({
     const MERMAID_URL = '/api/dsh-docdesk/mermaid.js'
     const STORAGE_KEY = 'dsh-docdesk.library.v2'
     const BOOKMARK_KEY = 'dsh-docdesk.bookmarks.v1'
+    const GUIDE_PATH = 'dsh-docdesk://guide'
+    const GUIDE_SEEDED_KEY = 'dsh-docdesk.guide.v1'
+    const GUIDE_MARKDOWN = `# 资料区使用说明
+
+这份说明书随插件更新。只记常用操作，细节靠右键菜单探索。
+
+## 添加与整理
+- 右上角「添加文件」打开选择器；文件只会加入资料区，不会移动磁盘文件。
+- 拖动图标换位置；放到另一个图标上会交换位置。文件夹拖到文件夹上也是交换。
+- 按住右键在空白处拖动可以框选；拖动任意选中项会整组移动。
+- 新建文件夹后，可以把文件拖进去；右键菜单也能移动。
+- 拖动时把鼠标移到桌面外，会进入路径投放模式；把鼠标移到路径上松开，就能放进那个文件夹。
+- 文件夹悬停 1 秒会显示里面有多少文件夹和文档。
+- 文件夹拖到文件夹上默认交换位置；停住后点右键才是放入。拿着文件拖到文件夹上松开是放入，右键是交换。
+- 顶部路径用箭头连接，最多显示两行；超过两行可以在路径区域滚动。
+
+## 阅读
+- 双击文档打开；顶部标签切换文件，「资料区」回主页。
+- 按 F 进入或退出沉浸阅读；Esc 也可以退出。
+- 按 B 或在右侧书签按钮添加书签；书签面板可以跳转、改标题、写备注、删除。
+- 滚动时自动记录上次阅读位置；重新打开文档时顶部会显示「上次阅读」和「继续阅读」。
+- 正文里右键某一行也可以插入书签。
+- 右侧滚动条左边的小横线是书签位置；鼠标移过去或滚轮经过会显示书签信息。
+- 点书签跳转时，目标行会高亮 3 秒。
+
+## 快捷操作
+- B：添加书签
+- F：沉浸阅读开关
+- Esc：关闭面板 / 退出沉浸
+- F2：重命名
+- Delete：把选中项移出资料区（不删文件）
+
+## 数据和限制
+- 文档顺序、文件夹、书签和阅读位置保存在当前浏览器。
+- 书签位置按文件绝对路径保存；文件移动后旧书签不会自动跟随。
+- 说明书本身也可以像普通文档一样重命名或移出资料区；移出后不会再次自动加入。`
+
     const ICON_W = 88
     const ICON_H = 104
     const ICON_CENTER_Y = 44
@@ -92,6 +129,17 @@ window.__ModuleLoader__.load({
       'bookmarks.save': '保存',
       'bookmarks.cancel': '取消',
       'bookmarks.dismiss': '隐藏上次阅读提示',
+      'guide.name': '资料区使用说明',
+      'menu.parent': '返回上一级',
+      'folder.tip': '{folders} 个文件夹 · {files} 个文档',
+      'doc.addBookmark': '在此处插入书签',
+      'pathDrop.title': '移动到文件夹',
+      'pathDrop.hint': '移到路径上，松开鼠标放入',
+      'pathDrop.current': '当前',
+      'drag.hintPut': '右键放入文件夹',
+      'drag.hintSwap': '右键与文件夹交换',
+      'drag.hintFolder': '松开交换 · 右键放入文件夹',
+      'drag.hintGroup': '松开移入 · 右键与文件夹交换',
       'chart.invalid': '图表数据无法解析，已显示原始代码。',
       'chart.source': '查看数据',
       'chart.empty': '图表没有可显示的数据',
@@ -212,6 +260,17 @@ window.__ModuleLoader__.load({
       'bookmarks.save': 'Save',
       'bookmarks.cancel': 'Cancel',
       'bookmarks.dismiss': 'Hide last-read prompt',
+      'guide.name': 'DocDesk guide',
+      'menu.parent': 'Go up one level',
+      'folder.tip': '{folders} folders · {files} documents',
+      'doc.addBookmark': 'Insert bookmark at this line',
+      'pathDrop.title': 'Move to folder',
+      'pathDrop.hint': 'Hover a path segment, then release to move',
+      'pathDrop.current': 'Current',
+      'drag.hintPut': 'Right-click to put inside',
+      'drag.hintSwap': 'Right-click to swap with folder',
+      'drag.hintFolder': 'Release to swap · right-click to put inside',
+      'drag.hintGroup': 'Release to move in · right-click to swap with folder',
       'chart.invalid': 'Chart data could not be parsed; the raw code is shown below.',
       'chart.source': 'View data',
       'chart.empty': 'The chart has no data to show',
@@ -328,6 +387,7 @@ window.__ModuleLoader__.load({
             x: Number.isFinite(value.x) ? value.x : null,
             y: Number.isFinite(value.y) ? value.y : null,
             addedAt: Number.isFinite(value.addedAt) ? value.addedAt : Date.now(),
+            fresh: Boolean(value.fresh),
           }
         }
         const seen = new Set()
@@ -393,6 +453,7 @@ window.__ModuleLoader__.load({
                 x: null,
                 y: null,
                 addedAt: Date.now(),
+                fresh: Boolean(folderId),
               }
             }
             return { ...previous, items }
@@ -431,7 +492,7 @@ window.__ModuleLoader__.load({
             for (const folderId of scope) delete folders[folderId]
             const items = { ...previous.items }
             for (const [path, item] of Object.entries(items)) {
-              if (item.folderId && scope.has(item.folderId)) items[path] = { ...item, folderId: parentId, x: null, y: null }
+              if (item.folderId && scope.has(item.folderId)) items[path] = { ...item, folderId: parentId, x: null, y: null, fresh: false }
             }
             return { ...previous, folders, items }
           })
@@ -462,7 +523,21 @@ window.__ModuleLoader__.load({
             }
             const item = previous.items[id]
             if (!item) return previous
-            return { ...previous, items: { ...previous.items, [id]: { ...item, folderId: targetFolderId ?? null, x: null, y: null } } }
+            return { ...previous, items: { ...previous.items, [id]: { ...item, folderId: targetFolderId ?? null, x: null, y: null, fresh: Boolean(targetFolderId) } } }
+          })
+        },
+        clearFresh(paths) {
+          if (!Array.isArray(paths) || paths.length === 0) return
+          update((previous) => {
+            let changed = false
+            const items = { ...previous.items }
+            for (const path of paths) {
+              if (items[path] && items[path].fresh) {
+                items[path] = { ...items[path], fresh: false }
+                changed = true
+              }
+            }
+            return changed ? { ...previous, items } : previous
           })
         },
         setPositions(updates) {
@@ -506,6 +581,24 @@ window.__ModuleLoader__.load({
     }
 
     const store = createLibraryStore()
+
+    function ensureGuide() {
+      try {
+        const localizedName = t('guide.name')
+        const existing = store.getState().items[GUIDE_PATH]
+        if (existing) {
+          if ((existing.name === 'DocDesk guide' || existing.name === '资料区使用说明') && existing.name !== localizedName) {
+            store.rename('file', GUIDE_PATH, localizedName)
+          }
+          return
+        }
+        if (localStorage.getItem(GUIDE_SEEDED_KEY) === '1') return
+        localStorage.setItem(GUIDE_SEEDED_KEY, '1')
+        store.addFiles([{ path: GUIDE_PATH, name: localizedName }])
+      } catch {
+        /* storage may be unavailable */
+      }
+    }
 
     function useLibrary() {
       const [snapshot, setSnapshot] = useState(store.getState())
@@ -894,6 +987,8 @@ window.__ModuleLoader__.load({
           return paths(['M9 4v5H4', 'M15 4v5h5', 'M20 15h-5v5', 'M4 15h5v5'])
         case 'bookmark':
           return paths(['M6.5 4h11v17l-5.5-3.8L6.5 21z'])
+        case 'chevron':
+          return paths(['M9 6l6 6-6 6'])
         default:
           return paths(['M12 5v14', 'M5 12h14'])
       }
@@ -1488,14 +1583,16 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-btn[data-active="true"] { color:var(--dsw-alias-state-business-primary,#2f6fed); border-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 38%, transparent); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 10%, transparent); }
 .dsd-btn[data-danger] { background:var(--dsw-alias-state-error-primary,#c62f45); border-color:transparent; color:#fff; font-weight:600; }
 .dsd-btn[data-danger]:hover:not(:disabled) { background:var(--dsw-alias-state-error-primary,#c62f45); filter:brightness(1.06); }
-.dsd-home { flex:1; min-height:0; display:flex; flex-direction:column; }
-.dsd-toolbar { flex:none; display:flex; align-items:center; gap:7px; padding:7px 12px 6px; flex-wrap:wrap; }
-.dsd-crumb { display:flex; align-items:center; gap:3px; min-width:0; font-size:12px; color:var(--dsw-alias-label-secondary,#6b6b76); flex-wrap:wrap; }
-.dsd-crumb-btn { border:none; background:transparent; color:inherit; font:inherit; font-size:12px; padding:2px 5px; border-radius:5px; cursor:pointer; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dsd-home { flex:1; min-height:0; display:flex; flex-direction:column; position:relative; }
+.dsd-toolbar { flex:none; display:flex; align-items:flex-start; gap:8px; padding:6px 12px 5px; }
+.dsd-toolbar-main { flex:1 1 auto; min-width:0; display:flex; align-items:flex-start; gap:7px; }
+.dsd-toolbar-actions { flex:none; display:flex; align-items:center; gap:7px; }
+.dsd-crumb { display:flex; align-items:center; gap:3px; min-width:0; max-height:calc(1.55em * 2 + 5px); overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; font-size:12px; color:var(--dsw-alias-label-secondary,#6b6b76); flex-wrap:wrap; align-content:flex-start; line-height:1.55; }
+.dsd-crumb-btn { border:none; background:transparent; color:inherit; font:inherit; font-size:12px; padding:1px 5px; border-radius:5px; cursor:pointer; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dsd-crumb-btn:hover { background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 8%, transparent); color:var(--dsw-alias-label-primary,#1b1b1f); }
-.dsd-crumb-current { padding:2px 5px; color:var(--dsw-alias-label-primary,#1b1b1f); font-weight:600; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.dsd-crumb-sep { opacity:.55; }
-.dsd-crumb-back { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin-right:1px; border:none; border-radius:6px; background:transparent; color:inherit; cursor:pointer; padding:0; }
+.dsd-crumb-current { padding:1px 5px; color:var(--dsw-alias-label-primary,#1b1b1f); font-weight:600; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dsd-crumb-sep { display:inline-flex; align-items:center; opacity:.55; flex:none; }
+.dsd-crumb-back { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin-right:1px; border:none; border-radius:6px; background:transparent; color:inherit; cursor:pointer; padding:0; flex:none; }
 .dsd-crumb-back:hover { background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 8%, transparent); }
 .dsd-toolbar-spacer { flex:1; min-width:4px; }
 .dsd-count { font-size:11px; color:var(--dsw-alias-label-secondary,#6b6b76); white-space:nowrap; }
@@ -1517,6 +1614,23 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-item:focus-visible { outline:2px solid var(--dsw-alias-state-business-primary,#2f6fed); outline-offset:1px; }
 .dsd-item[data-selected=true] { background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 13%, transparent); border-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 42%, transparent); }
 .dsd-item[data-dragging=true] { z-index:9; cursor:grabbing; opacity:.94; background:var(--dsw-alias-bg-layer-1,#fff); box-shadow:0 12px 26px rgba(0,0,0,.18); }
+.dsd-item[data-new=true]::before { content:""; position:absolute; inset:-3px; border-radius:12px; pointer-events:none; animation:dsd-new-item 3s ease-out forwards; }
+@keyframes dsd-new-item { 0% { background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 24%, transparent); box-shadow:0 0 0 2px color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 42%, transparent); opacity:1; } 65% { background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 10%, transparent); opacity:.45; } 100% { background:transparent; box-shadow:none; opacity:0; } }
+.dsd-folder-tip { position:fixed; z-index:55; max-width:220px; padding:7px 9px; border-radius:8px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); box-shadow:0 8px 24px rgba(0,0,0,.2); pointer-events:none; display:flex; flex-direction:column; gap:3px; }
+.dsd-folder-tip strong { font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dsd-folder-tip span { font-size:11px; color:var(--dsw-alias-label-secondary,#6b6b76); white-space:nowrap; }
+.dsd-drag-hint { position:absolute; z-index:40; max-width:220px; padding:5px 8px; border-radius:7px; border:1px solid color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 35%, var(--dsw-alias-border-l1,#e4e4ea)); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); box-shadow:0 8px 22px rgba(0,0,0,.18); font-size:10.5px; line-height:1.35; pointer-events:none; }
+.dsd-path-drop { position:absolute; inset:0; z-index:75; display:flex; flex-direction:column; gap:24px; padding:34px 30px; background:var(--dsw-alias-bg-layer-1,#fff); overflow:auto; }
+.dsd-path-drop-head { display:flex; align-items:center; gap:10px; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-path-drop-head > svg { color:var(--dsw-alias-state-business-primary,#2f6fed); flex:none; }
+.dsd-path-drop-head strong { color:var(--dsw-alias-label-primary,#1b1b1f); font-size:14px; }
+.dsd-path-drop-head span { font-size:12px; }
+.dsd-path-drop-path { display:flex; align-items:center; align-content:flex-start; flex-wrap:wrap; gap:18px 22px; max-width:1000px; }
+.dsd-path-drop-arrow { display:inline-flex; align-items:center; color:var(--dsw-alias-label-secondary,#6b6b76); opacity:.55; flex:none; }
+.dsd-path-drop-seg { display:inline-flex; align-items:center; gap:8px; padding:12px 18px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); border-radius:12px; background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); font-size:20px; font-weight:600; line-height:1.2; cursor:default; }
+.dsd-path-drop-seg[data-current=true] { border-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 35%, var(--dsw-alias-border-l1,#e4e4ea)); }
+.dsd-path-drop-seg[data-active=true] { border-color:var(--dsw-alias-state-business-primary,#2f6fed); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 15%, transparent); box-shadow:0 0 0 2px color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 20%, transparent); }
+.dsd-path-drop-seg em { font-style:normal; font-size:10px; font-weight:700; line-height:1; padding:3px 5px; border-radius:999px; background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 16%, transparent); color:var(--dsw-alias-state-business-primary,#2f6fed); }
 .dsd-item[data-drop=true] .dsd-glyph { outline:3px solid var(--dsw-alias-state-business-primary,#2f6fed); outline-offset:2px; }
 .dsd-glyph { position:relative; display:flex; align-items:center; justify-content:center; width:54px; height:54px; border-radius:14px; flex:none; }
 .dsd-glyph[data-kind=file] { background:var(--dsw-alias-bg-layer-1,#f6f6f8); border:1px solid var(--dsw-alias-border-l1,#e4e4ea); color:var(--dsw-alias-label-primary,#1b1b1f); }
@@ -1530,6 +1644,29 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-empty-hint { margin:0; max-width:420px; font-size:12px; line-height:1.65; }
 .dsd-no-match { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:12.5px; }
 .dsd-doc { flex:1; min-height:0; display:flex; flex-direction:column; position:relative; }
+.dsd-readbar { flex:none; display:flex; align-items:center; gap:8px; min-height:46px; padding:4px 12px; border-bottom:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 7%, var(--dsw-alias-bg-layer-1,#fff)); font-size:11.5px; }
+.dsd-readbar > svg { flex:none; color:var(--dsw-alias-state-business-primary,#2f6fed); }
+.dsd-readbar-title { font-size:11.5px; white-space:nowrap; }
+.dsd-readbar-meta { color:var(--dsw-alias-label-secondary,#6b6b76); white-space:nowrap; }
+.dsd-readbar-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-readbar-spacer { flex:1; min-width:4px; }
+.dsd-readbar .dsd-btn { flex:none; height:24px; margin-left:0; }
+.dsd-readbar .dsd-bookmark-toggle { height:38px; }
+.dsd-doc-reader { flex:1; min-height:0; position:relative; display:flex; }
+.dsd-doc-reader .dsd-doc-scroll { flex:1; min-height:0; }
+.dsd-bookmark-rail { position:absolute; top:0; bottom:0; right:18px; width:18px; z-index:6; cursor:pointer; }
+.dsd-bookmark-mark { position:absolute; right:2px; width:10px; height:2px; padding:0; border:none; border-radius:2px; background:var(--dsw-alias-label-secondary,#6b6b76); opacity:.7; transform:translateY(-50%); cursor:pointer; }
+.dsd-bookmark-mark[data-kind=last] { width:14px; height:3px; background:var(--dsw-alias-state-business-primary,#2f6fed); opacity:.9; }
+.dsd-bookmark-mark:hover { width:16px; background:var(--dsw-alias-state-business-primary,#2f6fed); opacity:1; }
+.dsd-bookmark-rail-tip { position:absolute; right:20px; width:230px; max-width:calc(100vw - 80px); padding:7px 9px; border-radius:8px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); box-shadow:0 10px 30px rgba(0,0,0,.24); transform:translateY(-50%); z-index:20; pointer-events:none; display:flex; flex-direction:column; gap:2px; }
+.dsd-bookmark-rail-tip strong { font-size:11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dsd-bookmark-tip-meta { font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-bookmark-tip-note { font-size:10.5px; line-height:1.45; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-bookmark-toggle { position:relative; flex-direction:column; gap:0; height:38px; min-width:40px; padding:2px 5px; font-size:9.5px; line-height:1.15; }
+.dsd-bookmark-toggle-label { font-size:9.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-bookmark-toggle .dsd-bookmark-count { position:absolute; top:1px; right:1px; min-width:12px; height:12px; padding:0 3px; line-height:12px; font-size:8px; }
+.dsd-doc-body .dsd-line-flash { animation:dsd-line-flash 3s ease-out; border-radius:5px; }
+@keyframes dsd-line-flash { 0%,18% { background-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 22%, transparent); box-shadow:0 0 0 2px color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 26%, transparent); } 70% { background-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 8%, transparent); box-shadow:none; } 100% { background-color:transparent; box-shadow:none; } }
 .dsd-doc-scroll { flex:1; min-height:0; overflow:auto; scrollbar-width:thin; }
 .dsd-doc-inner { max-width:880px; margin:0 auto; padding:18px 30px 64px; }
 .dsd-doc-pathbar { display:flex; align-items:center; gap:8px; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--dsw-alias-border-l1,#e4e4ea); color:var(--dsw-alias-label-secondary,#6b6b76); }
@@ -1541,7 +1678,7 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-resume-meta { font-size:11px; color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-resume-label { font-size:11.5px; color:var(--dsw-alias-label-secondary,#6b6b76); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dsd-resume-actions { flex:none; display:flex; align-items:center; gap:4px; }
-.dsd-bookmarks-popover { position:absolute; top:48px; right:12px; z-index:70; width:min(340px, calc(100% - 24px)); max-height:min(72vh, 560px); overflow:auto; padding:10px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); border-radius:12px; background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); box-shadow:0 16px 40px rgba(0,0,0,.22); }
+.dsd-bookmarks-popover { position:absolute; top:56px; right:12px; z-index:70; width:min(340px, calc(100% - 24px)); max-height:min(72vh, 560px); overflow:auto; padding:10px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); border-radius:12px; background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); box-shadow:0 16px 40px rgba(0,0,0,.22); }
 .dsd-bookmarks-head { display:flex; align-items:center; gap:8px; padding:2px 2px 8px; }
 .dsd-bookmarks-head strong { font-size:13px; }
 .dsd-bookmarks-head-count { flex:1; min-width:0; font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
@@ -1664,7 +1801,10 @@ body.dsd-immersive { overflow:hidden !important; }
 @media (max-width: 720px) {
   .dsd-count { display:none; }
   .dsd-search input { width:112px; }
-  .dsd-toolbar { padding:6px 10px 5px; }
+  .dsd-toolbar { padding:6px 10px 5px; flex-wrap:wrap; }
+  .dsd-toolbar-main { width:100%; }
+  .dsd-toolbar-actions { width:100%; justify-content:flex-end; }
+  .dsd-crumb { max-height:calc(1.55em * 2 + 5px); }
   .dsd-doc-inner { padding:14px 16px 48px; }
   .dsd-picker { padding:8px; }
 }
@@ -1806,7 +1946,12 @@ body.dsd-immersive { overflow:hidden !important; }
       const [immersive, setImmersive] = useState(false)
       const [bookmarksOpen, setBookmarksOpen] = useState(false)
       const [bookmarkEdit, setBookmarkEdit] = useState(null)
-      const [resumeDismissedPath, setResumeDismissedPath] = useState(null)
+      const [bookmarkHover, setBookmarkHover] = useState(null)
+      const [docMenu, setDocMenu] = useState(null)
+      const [folderTip, setFolderTip] = useState(null)
+      const [newHighlights, setNewHighlights] = useState(() => new Set())
+      const [pathDrop, setPathDrop] = useState(false)
+      const [pathDropHover, setPathDropHover] = useState(null)
       const [menu, setMenu] = useState(null)
       const [renaming, setRenaming] = useState(null)
       const [drag, setDrag] = useState(null)
@@ -1826,8 +1971,12 @@ body.dsd-immersive { overflow:hidden !important; }
       const docScrollSaveTimer = useRef(0)
       const readingReadyRef = useRef(false)
       const positionSaveBlockedUntil = useRef(0)
+      const folderTipTimer = useRef(0)
+      const newHighlightTimer = useRef(0)
+      const flashTimer = useRef(0)
       const dragRef = useRef(null)
       const marqueeRef = useRef(null)
+      const pathDropRef = useRef({ active: false, folderId: undefined })
       const selectedRef = useRef(selected)
       selectedRef.current = selected
       const immersiveRef = useRef(false)
@@ -1847,9 +1996,16 @@ body.dsd-immersive { overflow:hidden !important; }
         toastTimer.current = window.setTimeout(() => setToast(null), 2300)
       }, [])
 
+      useEffect(() => {
+        ensureGuide()
+      }, [])
+
       useEffect(() => () => {
         window.clearTimeout(toastTimer.current)
         window.clearTimeout(docScrollSaveTimer.current)
+        window.clearTimeout(folderTipTimer.current)
+        window.clearTimeout(newHighlightTimer.current)
+        window.clearTimeout(flashTimer.current)
         try {
           docAbort.current?.abort()
         } catch {
@@ -1885,7 +2041,7 @@ body.dsd-immersive { overflow:hidden !important; }
           .map((folder) => ({ kind: 'folder', key: folder.id, id: folder.id, name: folder.name, x: folder.x, y: folder.y, count: countChildren(library, folder.id), addedAt: 0 }))
         const files = Object.values(library.items)
           .filter((item) => (item.folderId ?? null) === currentFolder)
-          .map((item) => ({ kind: 'file', key: item.path, id: item.path, name: item.name || basename(item.path), path: item.path, x: item.x, y: item.y, addedAt: item.addedAt || 0 }))
+          .map((item) => ({ kind: 'file', key: item.path, id: item.path, name: item.name || basename(item.path), path: item.path, x: item.x, y: item.y, addedAt: item.addedAt || 0, fresh: Boolean(item.fresh) }))
         return [...folders, ...files]
       }, [library, currentFolder])
 
@@ -1918,14 +2074,45 @@ body.dsd-immersive { overflow:hidden !important; }
         })
       }, [entries])
 
+      const lastHighlightFolderRef = useRef(currentFolder)
+      useEffect(() => {
+        if (lastHighlightFolderRef.current === currentFolder) return
+        lastHighlightFolderRef.current = currentFolder
+        window.clearTimeout(newHighlightTimer.current)
+        setNewHighlights(new Set())
+      }, [currentFolder])
+
+      useEffect(() => {
+        if (!currentFolder) return
+        const freshPaths = allEntries.filter((entry) => entry.kind === 'file' && entry.fresh).map((entry) => entry.path)
+        if (freshPaths.length === 0) return
+        window.clearTimeout(newHighlightTimer.current)
+        setNewHighlights((previous) => new Set([...previous, ...freshPaths]))
+        store.clearFresh(freshPaths)
+        newHighlightTimer.current = window.setTimeout(() => setNewHighlights(new Set()), 3000)
+      }, [allEntries, currentFolder])
+
+      useEffect(() => {
+        window.clearTimeout(folderTipTimer.current)
+        setFolderTip(null)
+      }, [currentFolder])
+
+      useEffect(() => {
+        if (!drag && !marquee) return
+        window.clearTimeout(folderTipTimer.current)
+        setFolderTip(null)
+      }, [drag, marquee])
+
       useEffect(() => {
         if (viewport.width < ICON_W + PAD * 2) return
+        const previousColumns = prevColumns.current
         const gridColumnsNow = Math.max(1, gridColumns(viewport.width))
-        const reflowAll = prevColumns.current !== gridColumnsNow
+        const reflowAll = previousColumns > 0 && previousColumns !== gridColumnsNow
         prevColumns.current = gridColumnsNow
+        const sortColumns = previousColumns > 0 ? previousColumns : gridColumnsNow
         const ordered = allEntries.slice().sort((left, right) => {
-          const leftSlot = positionSlot(left.x, left.y, gridColumnsNow)
-          const rightSlot = positionSlot(right.x, right.y, gridColumnsNow)
+          const leftSlot = positionSlot(left.x, left.y, sortColumns)
+          const rightSlot = positionSlot(right.x, right.y, sortColumns)
           const leftIndex = leftSlot ? leftSlot.index : Number.MAX_SAFE_INTEGER
           const rightIndex = rightSlot ? rightSlot.index : Number.MAX_SAFE_INTEGER
           return leftIndex - rightIndex || (left.addedAt ?? 0) - (right.addedAt ?? 0) || left.name.localeCompare(right.name)
@@ -1965,6 +2152,12 @@ body.dsd-immersive { overflow:hidden !important; }
         if (!activePath) return []
         return [...(bookmarks.bookmarks[activePath] || [])].sort((left, right) => left.ratio - right.ratio || left.createdAt - right.createdAt)
       }, [bookmarks, activePath])
+      const bookmarkMarks = useMemo(() => {
+        const marks = []
+        if (lastPosition && lastPosition.ratio > 0.005) marks.push({ ...lastPosition, id: '__last__', kind: 'last' })
+        for (const entry of activeBookmarks) marks.push({ ...entry, kind: 'bookmark' })
+        return marks.sort((left, right) => left.ratio - right.ratio)
+      }, [lastPosition, activeBookmarks])
 
       const captureDocPosition = useCallback(() => {
         const scroll = docScrollRef.current
@@ -2001,6 +2194,26 @@ body.dsd-immersive { overflow:hidden !important; }
         return { ratio, blockIndex, label: label.slice(0, 80), updatedAt: Date.now() }
       }, [])
 
+      const flashBlock = useCallback((position) => {
+        const scroll = docScrollRef.current
+        const body = scroll?.querySelector('.dsd-doc-body')
+        if (!body || !position) return
+        let block = Number.isInteger(position.blockIndex) ? body.children[position.blockIndex] || null : null
+        if (!block) {
+          const target = clamp(Number(position.ratio) || 0, 0, 1) * Math.max(1, scroll.scrollHeight)
+          for (const child of body.children) {
+            if (child.offsetTop <= target) block = child
+            else break
+          }
+        }
+        if (!block) return
+        block.classList.remove('dsd-line-flash')
+        void block.offsetWidth
+        block.classList.add('dsd-line-flash')
+        window.clearTimeout(flashTimer.current)
+        flashTimer.current = window.setTimeout(() => block.classList.remove('dsd-line-flash'), 3100)
+      }, [])
+
       const jumpToPosition = useCallback((position) => {
         const scroll = docScrollRef.current
         if (!scroll || !position) return
@@ -2011,9 +2224,11 @@ body.dsd-immersive { overflow:hidden !important; }
         } catch {
           scroll.scrollTop = top
         }
+        flashBlock(position)
         setBookmarksOpen(false)
         setBookmarkEdit(null)
-      }, [])
+        setDocMenu(null)
+      }, [flashBlock])
 
       const addBookmark = useCallback(() => {
         if (!activePath || doc.status !== 'ready') return
@@ -2022,6 +2237,63 @@ body.dsd-immersive { overflow:hidden !important; }
         bookmarkStore.addBookmark(activePath, position)
         showToast(t('bookmarks.added'))
       }, [activePath, doc.status, captureDocPosition, showToast])
+
+      const positionForBlock = useCallback((block, body, scroll) => {
+        if (!block || !body || !scroll) return null
+        const children = Array.from(body.children)
+        const blockIndex = Math.max(0, children.indexOf(block))
+        const scrollRect = scroll.getBoundingClientRect()
+        const blockRect = block.getBoundingClientRect()
+        const max = Math.max(1, scroll.scrollHeight - scroll.clientHeight)
+        const ratio = clamp((scroll.scrollTop + blockRect.top - scrollRect.top) / max, 0, 1)
+        let headingLabel = ''
+        for (const heading of body.querySelectorAll('h1,h2,h3,h4')) {
+          if (heading.getBoundingClientRect().top <= blockRect.top + 4) {
+            headingLabel = (heading.innerText || heading.textContent || '').replace(/\s+/gu, ' ').trim()
+          } else {
+            break
+          }
+        }
+        const blockLabel = (block.innerText || block.textContent || '').replace(/\s+/gu, ' ').trim()
+        const label = headingLabel || blockLabel.replace(/`{2,}[A-Za-z0-9_-]*/gu, ' ').replace(/\s+/gu, ' ').trim()
+        return {
+          ratio,
+          blockIndex,
+          label: (label || t('bookmarks.positionLabel', { percent: Math.round(ratio * 100) })).slice(0, 80),
+          updatedAt: Date.now(),
+        }
+      }, [])
+
+      const onDocContextMenu = useCallback((event) => {
+        if (!activePath || doc.status !== 'ready') return
+        const body = event.currentTarget
+        const target = event.target
+        const block = Array.from(body.children).find((child) => child === target || child.contains(target))
+        if (!block) return
+        event.preventDefault()
+        const scroll = docScrollRef.current
+        const position = positionForBlock(block, body, scroll)
+        if (!position) return
+        setBookmarksOpen(false)
+        setBookmarkEdit(null)
+        setMenu(null)
+        setDocMenu({
+          x: clamp(event.clientX, 8, window.innerWidth - 240),
+          y: clamp(event.clientY, 8, window.innerHeight - 110),
+          position,
+        })
+      }, [activePath, doc.status, positionForBlock])
+
+      useEffect(() => {
+        if (!docMenu) return undefined
+        const onDown = (event) => {
+          const target = event.target
+          if (target && target.closest && target.closest('.dsd-doc-context-menu')) return
+          setDocMenu(null)
+        }
+        document.addEventListener('pointerdown', onDown, true)
+        return () => document.removeEventListener('pointerdown', onDown, true)
+      }, [docMenu])
 
       const handleDocScroll = useCallback(() => {
         if (!activePath || !readingReadyRef.current || Date.now() < positionSaveBlockedUntil.current) return
@@ -2049,6 +2321,7 @@ body.dsd-immersive { overflow:hidden !important; }
       useEffect(() => {
         setBookmarksOpen(false)
         setBookmarkEdit(null)
+        setDocMenu(null)
         if (docScrollRef.current) docScrollRef.current.scrollTop = 0
       }, [activePath])
 
@@ -2178,6 +2451,20 @@ body.dsd-immersive { overflow:hidden !important; }
         const cached = docCache.current.get(activePath)
         if (cached) {
           setDoc(cached)
+          return undefined
+        }
+        if (activePath === GUIDE_PATH) {
+          const guide = {
+            status: 'ready',
+            path: GUIDE_PATH,
+            name: t('guide.name'),
+            content: GUIDE_MARKDOWN,
+            truncated: false,
+            size: GUIDE_MARKDOWN.length,
+            mtime: Date.now(),
+          }
+          docCache.current.set(activePath, guide)
+          setDoc(guide)
           return undefined
         }
         const controller = new AbortController()
@@ -2316,14 +2603,10 @@ body.dsd-immersive { overflow:hidden !important; }
         [showToast],
       )
 
-      const moveEntry = useCallback(
-        (entry, targetFolderId) => {
-          store.move(entry.kind, entry.id, targetFolderId)
-          setMenu(null)
-          showToast(t('toast.moved'))
-        },
-        [showToast],
-      )
+      const moveEntry = useCallback((entry, targetFolderId) => {
+        store.move(entry.kind, entry.id, targetFolderId)
+        setMenu(null)
+      }, [])
 
       const requestDeleteFolder = useCallback(
         (folder) => {
@@ -2386,16 +2669,52 @@ body.dsd-immersive { overflow:hidden !important; }
           }
           setSelected(new Set())
           setMenu(null)
-          showToast(moved > 0 ? t('toast.movedMany', { count: moved }) : t('toast.noMove'))
+          if (moved === 0) showToast(t('toast.noMove'))
           return moved
         },
         [allEntries, library.folders, showToast],
+      )
+
+      const swapGroupWithFolder = useCallback(
+        (group, targetFolderId) => {
+          const target = allEntries.find((entry) => entry.kind === 'folder' && entry.id === targetFolderId)
+          if (!target || !Array.isArray(group) || group.length === 0) return false
+          if (group.some((item) => item.kind === 'folder' && (item.id === targetFolderId || descendantFolders(library.folders, item.id).has(targetFolderId)))) return false
+          const slotIndex = (entry) => {
+            const slot = positionSlot(entry.x, entry.y, columns)
+            return slot ? slot.index : null
+          }
+          const targetSlot = slotIndex(target)
+          if (targetSlot === null) return false
+          const groupKeys = new Set(group.map((item) => item.key))
+          const groupOrdered = group.slice().sort((left, right) => (slotIndex(left) ?? Number.MAX_SAFE_INTEGER) - (slotIndex(right) ?? Number.MAX_SAFE_INTEGER))
+          const after = allEntries.filter((entry) => {
+            if (groupKeys.has(entryKey(entry))) return false
+            const index = slotIndex(entry)
+            return index !== null && index > targetSlot
+          })
+          const updates = []
+          let cursor = targetSlot
+          const place = (entry) => {
+            const slot = slotPosition(cursor, columns)
+            updates.push({ kind: entry.kind, id: entry.id, x: slot.x, y: slot.y })
+            cursor += 1
+          }
+          for (const item of groupOrdered) place(item)
+          place(target)
+          for (const entry of after) place(entry)
+          store.setPositions(updates)
+          return true
+        },
+        [allEntries, columns, library.folders],
       )
 
       const onPointerDown = useCallback(
         (event, entry) => {
           if (event.button !== 0 && event.pointerType === 'mouse') return
           if (renameRef.current) return
+          window.clearTimeout(folderTipTimer.current)
+          setFolderTip(null)
           try {
             event.currentTarget.setPointerCapture(event.pointerId)
           } catch {
@@ -2416,15 +2735,24 @@ body.dsd-immersive { overflow:hidden !important; }
             startCanvasX = event.clientX - rect.left + frame.scrollLeft
             startCanvasY = event.clientY - rect.top + frame.scrollTop
           }
+          const anchorEntry = groupEntries.find((candidate) => entryKey(candidate) === key) || groupEntries[0]
+          const anchorX = Number.isFinite(anchorEntry.x) ? anchorEntry.x : PAD
+          const anchorY = Number.isFinite(anchorEntry.y) ? anchorEntry.y : PAD
           dragRef.current = {
             anchorKey: key,
-            group: groupEntries.map((candidate) => ({
-              kind: candidate.kind,
-              id: candidate.id,
-              key: entryKey(candidate),
-              originX: Number.isFinite(candidate.x) ? candidate.x : PAD,
-              originY: Number.isFinite(candidate.y) ? candidate.y : PAD,
-            })),
+            group: groupEntries.map((candidate) => {
+              const originX = Number.isFinite(candidate.x) ? candidate.x : PAD
+              const originY = Number.isFinite(candidate.y) ? candidate.y : PAD
+              const delay = Math.min(140, Math.round((Math.abs(originX - anchorX) + Math.abs(originY - anchorY)) / CELL_W * 32))
+              return {
+                kind: candidate.kind,
+                id: candidate.id,
+                key: entryKey(candidate),
+                originX,
+                originY,
+                delay,
+              }
+            }),
             startCanvasX,
             startCanvasY,
             moved: false,
@@ -2498,11 +2826,36 @@ body.dsd-immersive { overflow:hidden !important; }
           const rect = frame.getBoundingClientRect()
           const canvasX = event.clientX - rect.left + frame.scrollLeft
           const canvasY = event.clientY - rect.top + frame.scrollTop
-          const dx = canvasX - current.startCanvasX
-          const dy = canvasY - current.startCanvasY
-          if (!current.moved && Math.hypot(dx, dy) < 4) return
+          const moveDx = canvasX - current.startCanvasX
+          const moveDy = canvasY - current.startCanvasY
+          if (!current.moved && Math.hypot(moveDx, moveDy) < 4) return
           current.moved = true
+          const frameRect = frame.getBoundingClientRect()
+          const hit = document.elementFromPoint(event.clientX, event.clientY)
+          const overPath = Boolean(hit && hit.closest && hit.closest('.dsd-path-drop'))
+          const outsideDesktop = event.clientX < frameRect.left - 2 || event.clientX > frameRect.right + 2 || event.clientY < frameRect.top - 2 || event.clientY > frameRect.bottom + 2
+          if (outsideDesktop || overPath) {
+            setPathDrop(true)
+            pathDropRef.current.active = true
+            setDropSlot(null)
+            setDropFolder(null)
+            const segment = hit && hit.closest ? hit.closest('[data-path-drop-id]') : null
+            const value = segment ? segment.getAttribute('data-path-drop-id') : null
+            const folderId = value === null ? undefined : value === '__root__' ? null : value
+            pathDropRef.current.folderId = folderId
+            setPathDropHover(value)
+            return
+          }
+          if (pathDropRef.current.active) {
+            pathDropRef.current.active = false
+            pathDropRef.current.folderId = undefined
+            setPathDrop(false)
+            setPathDropHover(null)
+          }
           const group = current.group
+          const anchor = group.find((item) => item.key === current.anchorKey) || group[0]
+          const dx = canvasX - (anchor.originX + ICON_W / 2)
+          const dy = canvasY - (anchor.originY + ICON_CENTER_Y)
           const minX = Math.min(...group.map((item) => item.originX))
           const maxX = Math.max(...group.map((item) => item.originX + ICON_W))
           const minY = Math.min(...group.map((item) => item.originY))
@@ -2515,8 +2868,9 @@ body.dsd-immersive { overflow:hidden !important; }
           const clampedDy = maxDy >= minDy ? clamp(dy, minDy, maxDy) : 0
           const items = {}
           for (const item of group) items[item.key] = { x: item.originX + clampedDx, y: item.originY + clampedDy }
-          setDrag({ items, anchorKey: current.anchorKey })
-          const anchor = group.find((item) => item.key === current.anchorKey) || group[0]
+          const trail = {}
+          for (const item of group) trail[item.key] = item.delay || 0
+          setDrag({ items, anchorKey: current.anchorKey, trail })
           const anchorPos = items[anchor.key]
           setDropSlot(nearestSlot(anchorPos.x + ICON_W / 2, anchorPos.y + ICON_CENTER_Y, columns, targetRows))
           const selectedFolderIds = new Set(group.filter((item) => item.kind === 'folder').map((item) => item.id))
@@ -2563,13 +2917,37 @@ body.dsd-immersive { overflow:hidden !important; }
             setDropFolder(null)
             return
           }
+          if (pathDropRef.current.active) {
+            const targetFolderId = pathDropRef.current.folderId
+            const activeGroup = current.group
+            pathDropRef.current = { active: false, folderId: undefined }
+            setPathDrop(false)
+            setPathDropHover(null)
+            setDropSlot(null)
+            setDropFolder(null)
+            setDrag(null)
+            if (targetFolderId !== undefined && targetFolderId !== currentFolder) {
+              if (activeGroup.length === 1) {
+                const item = activeGroup[0]
+                const forbidden = item.kind === 'folder' && targetFolderId && (item.id === targetFolderId || descendantFolders(library.folders, item.id).has(targetFolderId))
+                if (!forbidden) {
+                  store.move(item.kind, item.id, targetFolderId)
+                  setSelected(new Set())
+                }
+              } else {
+                moveSelection(targetFolderId)
+              }
+            }
+            return
+          }
           if (current.moved) {
             const rect = frame.getBoundingClientRect()
             const canvasX = event.clientX - rect.left + frame.scrollLeft
             const canvasY = event.clientY - rect.top + frame.scrollTop
-            const dx = canvasX - current.startCanvasX
-            const dy = canvasY - current.startCanvasY
             const group = current.group
+            const dragAnchor = group.find((item) => item.key === current.anchorKey) || group[0]
+            const dx = canvasX - (dragAnchor.originX + ICON_W / 2)
+            const dy = canvasY - (dragAnchor.originY + ICON_CENTER_Y)
             const minX = Math.min(...group.map((item) => item.originX))
             const maxX = Math.max(...group.map((item) => item.originX + ICON_W))
             const minY = Math.min(...group.map((item) => item.originY))
@@ -2585,9 +2963,16 @@ body.dsd-immersive { overflow:hidden !important; }
               const position = clampToCanvas(anchor.originX + clampedDx, anchor.originY + clampedDy, frame.clientWidth, canvasHeight)
               const target = nearestSlot(position.x + ICON_W / 2, position.y + ICON_CENTER_Y, columns, targetRows)
               const forbiddenFolder = anchor.kind === 'folder' && dropFolder && descendantFolders(library.folders, anchor.id).has(dropFolder)
-              if (dropFolder && !forbiddenFolder) {
+              if (anchor.kind === 'folder' && dropFolder && !forbiddenFolder) {
+                const targetFolder = allEntries.find((entry) => entry.kind === 'folder' && entry.id === dropFolder)
+                if (targetFolder && Number.isFinite(targetFolder.x) && Number.isFinite(targetFolder.y)) {
+                  store.setPositions([
+                    { kind: 'folder', id: anchor.id, x: targetFolder.x, y: targetFolder.y },
+                    { kind: 'folder', id: targetFolder.id, x: anchor.originX, y: anchor.originY },
+                  ])
+                }
+              } else if (dropFolder && !forbiddenFolder) {
                 store.move(anchor.kind, anchor.id, dropFolder)
-                showToast(t('toast.moved'))
               } else if (!forbiddenFolder && target) {
                 const occupant = allEntries.find((entry) => {
                   if (entry.kind === anchor.kind && entry.id === anchor.id) return false
@@ -2599,17 +2984,16 @@ body.dsd-immersive { overflow:hidden !important; }
                     { kind: anchor.kind, id: anchor.id, x: target.x, y: target.y },
                     { kind: occupant.kind, id: occupant.id, x: anchor.originX, y: anchor.originY },
                   ])
-                  showToast(t('toast.moved'))
                 } else if (anchor.originX !== target.x || anchor.originY !== target.y) {
                   store.setPositions([{ kind: anchor.kind, id: anchor.id, x: target.x, y: target.y }])
-                  showToast(t('toast.moved'))
                 }
               }
             } else if (
               dropFolder &&
               !group.some((item) => item.kind === 'folder' && (item.id === dropFolder || descendantFolders(library.folders, item.id).has(dropFolder)))
             ) {
-              moveSelection(dropFolder)
+              if (group.every((item) => item.kind === 'folder')) swapGroupWithFolder(group, dropFolder)
+              else moveSelection(dropFolder)
             } else {
               const anchor = group.find((item) => item.key === current.anchorKey) || group[0]
               const anchorPos = { x: anchor.originX + clampedDx, y: anchor.originY + clampedDy }
@@ -2626,7 +3010,6 @@ body.dsd-immersive { overflow:hidden !important; }
                 const updates = findGroupPlacement(group, target.col - anchorOrigin.col, target.row - anchorOrigin.row, columns, occupied)
                 if (updates) {
                   store.setPositions(updates)
-                  showToast(t('toast.moved'))
                 } else {
                   showToast(t('toast.noRoom'))
                 }
@@ -2638,7 +3021,7 @@ body.dsd-immersive { overflow:hidden !important; }
           setDrag(null)
           setDropFolder(null)
         },
-        [allEntries, canvasHeight, columns, dropFolder, library.folders, targetRows, showToast, moveSelection],
+        [allEntries, canvasHeight, columns, dropFolder, library.folders, targetRows, showToast, moveSelection, currentFolder, swapGroupWithFolder],
       )
 
       useEffect(() => {
@@ -2676,6 +3059,7 @@ body.dsd-immersive { overflow:hidden !important; }
             }
             if (confirmState) return setConfirmState(null)
             if (picker.open) return closePicker()
+            if (docMenu) return setDocMenu(null)
             if (bookmarksOpen) {
               setBookmarksOpen(false)
               setBookmarkEdit(null)
@@ -2698,9 +3082,14 @@ body.dsd-immersive { overflow:hidden !important; }
         }
         document.addEventListener('keydown', onKey)
         return () => document.removeEventListener('keydown', onKey)
-      }, [menu, renaming, confirmState, picker.open, selected, library.activeTab, deleteSelection, closePicker, immersive, toggleImmersive, exitImmersive, bookmarksOpen, activePath, doc.status, addBookmark])
+      }, [menu, renaming, confirmState, picker.open, selected, library.activeTab, deleteSelection, closePicker, immersive, toggleImmersive, exitImmersive, bookmarksOpen, docMenu, activePath, doc.status, addBookmark])
 
       const chain = useMemo(() => folderChain(library.folders, currentFolder), [library.folders, currentFolder])
+      const pathSegments = useMemo(() => {
+        const segments = [{ id: null, name: t('folder.root'), current: currentFolder === null }]
+        for (const folder of chain) segments.push({ id: folder.id, name: folder.name, current: currentFolder === folder.id })
+        return segments
+      }, [chain, currentFolder])
       const contextEntry = useMemo(() => {
         if (!menu) return null
         return allEntries.find((entry) => entry.kind === menu.kind && entry.id === menu.key) || null
@@ -2712,7 +3101,11 @@ body.dsd-immersive { overflow:hidden !important; }
         if (!contextEntry) return []
         const blocked = contextEntry.kind === 'folder' ? descendantFolders(library.folders, contextEntry.id) : new Set()
         const result = []
-        if (currentFolder) result.push({ id: null, name: t('menu.root') })
+        if (currentFolder) {
+          const parentId = library.folders[currentFolder]?.parentId ?? null
+          if (parentId) result.push({ id: parentId, name: t('menu.parent'), up: true })
+          result.push({ id: null, name: t('menu.root') })
+        }
         for (const folder of Object.values(library.folders).sort((left, right) => left.name.localeCompare(right.name))) {
           if (folder.id === currentFolder) continue
           if (blocked.has(folder.id)) continue
@@ -2730,7 +3123,11 @@ body.dsd-immersive { overflow:hidden !important; }
           for (const descendant of descendantFolders(library.folders, entry.id)) blocked.add(descendant)
         }
         const result = []
-        if (currentFolder) result.push({ id: null, name: t('menu.root') })
+        if (currentFolder) {
+          const parentId = library.folders[currentFolder]?.parentId ?? null
+          if (parentId) result.push({ id: parentId, name: t('menu.parent'), up: true })
+          result.push({ id: null, name: t('menu.root') })
+        }
         for (const folder of Object.values(library.folders).sort((left, right) => left.name.localeCompare(right.name))) {
           if (folder.id === currentFolder) continue
           if (blocked.has(folder.id)) continue
@@ -2811,6 +3208,8 @@ body.dsd-immersive { overflow:hidden !important; }
         const key = entryKey(entry)
         const dragPosition = drag && drag.items ? drag.items[key] : null
         const isDragging = Boolean(dragPosition)
+        const isDragAnchor = Boolean(isDragging && drag.anchorKey === key)
+        const dragTrail = isDragging && drag.trail ? drag.trail[key] || 0 : 0
         const x = dragPosition ? dragPosition.x : entry.x
         const y = dragPosition ? dragPosition.y : entry.y
         const isSelected = selected.has(key)
@@ -2824,20 +3223,63 @@ body.dsd-immersive { overflow:hidden !important; }
             className: 'dsd-item',
             role: 'button',
             tabIndex: 0,
-            style: { left: `${Number.isFinite(x) ? x : -999}px`, top: `${Number.isFinite(y) ? y : -999}px` },
+            style: {
+              left: `${Number.isFinite(x) ? x : -999}px`,
+              top: `${Number.isFinite(y) ? y : -999}px`,
+              transition: isDragging
+                ? `left ${isDragAnchor ? 70 : 170}ms cubic-bezier(.2,.8,.2,1) ${isDragAnchor ? 0 : dragTrail}ms, top ${isDragAnchor ? 70 : 170}ms cubic-bezier(.2,.8,.2,1) ${isDragAnchor ? 0 : dragTrail}ms`
+                : undefined,
+            },
             title: entry.kind === 'file' ? entry.path : entry.name,
             'data-selected': isSelected ? 'true' : 'false',
             'data-dragging': isDragging ? 'true' : 'false',
             'data-drop': isDropTarget ? 'true' : 'false',
             'data-pending': !Number.isFinite(x) || !Number.isFinite(y) ? 'true' : 'false',
+            'data-new': entry.kind === 'file' && newHighlights.has(entry.path) ? 'true' : 'false',
             ...folderAttrs,
             onPointerDown: (event) => onPointerDown(event, entry),
             onPointerMove,
             onPointerUp,
             onPointerCancel: onPointerUp,
+            onPointerEnter: entry.kind === 'folder'
+              ? (event) => {
+                  if (dragRef.current || marqueeRef.current) return
+                  window.clearTimeout(folderTipTimer.current)
+                  const tipX = event.clientX
+                  const tipY = event.clientY
+                  folderTipTimer.current = window.setTimeout(() => setFolderTip({ id: entry.id, x: tipX, y: tipY }), 1000)
+                }
+              : undefined,
+            onPointerLeave: entry.kind === 'folder'
+              ? () => {
+                  window.clearTimeout(folderTipTimer.current)
+                  setFolderTip(null)
+                }
+              : undefined,
             onDoubleClick: () => openEntry(entry),
             onContextMenu: (event) => {
               event.preventDefault()
+              if (dragRef.current) {
+                const activeDrag = dragRef.current
+                if (dropFolder) {
+                  const group = activeDrag.group
+                  if (group.length === 1 && group[0].kind === 'folder') {
+                    store.move('folder', group[0].id, dropFolder)
+                  } else {
+                    swapGroupWithFolder(group, dropFolder)
+                  }
+                }
+                dragRef.current = null
+                setDrag(null)
+                setDropFolder(null)
+                setDropSlot(null)
+                setSelected(new Set())
+                setMenu(null)
+                setPathDrop(false)
+                setPathDropHover(null)
+                pathDropRef.current = { active: false, folderId: undefined }
+                return
+              }
               const currentSelected = selectedRef.current
               if (!currentSelected.has(key) || currentSelected.size === 1) setSelected(new Set([key]))
               setMenu({
@@ -2894,102 +3336,109 @@ body.dsd-immersive { overflow:hidden !important; }
           h(
             'div',
             { className: 'dsd-toolbar' },
-            currentFolder
-              ? h(
+            h(
+              'div',
+              { className: 'dsd-toolbar-main' },
+              currentFolder
+                ? h(
+                    'button',
+                    {
+                      className: 'dsd-crumb-back',
+                      type: 'button',
+                      title: t('action.back'),
+                      'aria-label': t('action.back'),
+                      onClick: () => {
+                        const folder = library.folders[currentFolder]
+                        setCurrentFolder(folder ? folder.parentId ?? null : null)
+                        setSelected(new Set())
+                      },
+                    },
+                    icon('back', 14),
+                  )
+                : null,
+              h(
+                'div',
+                { className: 'dsd-crumb' },
+                h(
                   'button',
                   {
-                    className: 'dsd-crumb-back',
+                    className: 'dsd-crumb-btn',
                     type: 'button',
-                    title: t('action.back'),
-                    'aria-label': t('action.back'),
                     onClick: () => {
-                      const folder = library.folders[currentFolder]
-                      setCurrentFolder(folder ? folder.parentId ?? null : null)
+                      setCurrentFolder(null)
                       setSelected(new Set())
                     },
                   },
-                  icon('back', 14),
-                )
-              : null,
+                  t('folder.root'),
+                ),
+                chain.map((folder, index) =>
+                  h(
+                    React.Fragment,
+                    { key: folder.id },
+                    h('span', { className: 'dsd-crumb-sep' }, icon('chevron', 11)),
+                    index === chain.length - 1
+                      ? h('span', { className: 'dsd-crumb-current' }, folder.name)
+                      : h(
+                          'button',
+                          {
+                            className: 'dsd-crumb-btn',
+                            type: 'button',
+                            onClick: () => {
+                              setCurrentFolder(folder.id)
+                              setSelected(new Set())
+                            },
+                          },
+                          folder.name,
+                        ),
+                  ),
+                ),
+              ),
+              h('span', { className: 'dsd-count' }, t('status.count', { count: Object.keys(library.items).length })),
+              selectedEntries.length > 1
+                ? h(
+                    'button',
+                    { className: 'dsd-selection-pill', type: 'button', onClick: () => deleteSelection(), title: t('action.removeSelected', { count: selectedEntries.length }) },
+                    icon('trash', 12),
+                    h('span', null, t('selection.count', { count: selectedEntries.length })),
+                  )
+                : null,
+            ),
             h(
               'div',
-              { className: 'dsd-crumb' },
+              { className: 'dsd-toolbar-actions' },
+              h(
+                'div',
+                { className: 'dsd-search' },
+                icon('search', 13),
+                h('input', {
+                  value: search,
+                  placeholder: t('picker.search'),
+                  'aria-label': t('picker.search'),
+                  spellCheck: false,
+                  onChange: (event) => setSearch(event.currentTarget.value),
+                }),
+              ),
+              h(
+                'button',
+                { className: 'dsd-btn', type: 'button', onClick: createFolder, title: t('action.newFolder') },
+                icon('folder-plus', 14),
+                h('span', null, t('action.newFolder')),
+              ),
               h(
                 'button',
                 {
-                  className: 'dsd-crumb-btn',
+                  className: 'dsd-btn',
                   type: 'button',
-                  onClick: () => {
-                    setCurrentFolder(null)
-                    setSelected(new Set())
-                  },
+                  'data-quiet': true,
+                  'data-active': immersive ? 'true' : 'false',
+                  title: immersive ? t('immersive.exit') : t('immersive.enter'),
+                  'aria-label': immersive ? t('immersive.exit') : t('immersive.enter'),
+                  'aria-pressed': immersive,
+                  onClick: toggleImmersive,
                 },
-                t('folder.root'),
+                icon(immersive ? 'collapse' : 'expand', 14),
+                h('span', null, t('immersive.short')),
               ),
-              chain.map((folder, index) =>
-                h(
-                  React.Fragment,
-                  { key: folder.id },
-                  h('span', { className: 'dsd-crumb-sep' }, '/'),
-                  index === chain.length - 1
-                    ? h('span', { className: 'dsd-crumb-current' }, folder.name)
-                    : h(
-                        'button',
-                        {
-                          className: 'dsd-crumb-btn',
-                          type: 'button',
-                          onClick: () => {
-                            setCurrentFolder(folder.id)
-                            setSelected(new Set())
-                          },
-                        },
-                        folder.name,
-                      ),
-                ),
-              ),
-            ),
-            h('span', { className: 'dsd-count' }, t('status.count', { count: Object.keys(library.items).length })),
-            selectedEntries.length > 1
-              ? h(
-                  'button',
-                  { className: 'dsd-selection-pill', type: 'button', onClick: () => deleteSelection(), title: t('action.removeSelected', { count: selectedEntries.length }) },
-                  icon('trash', 12),
-                  h('span', null, t('selection.count', { count: selectedEntries.length })),
-                )
-              : null,
-            h('div', { className: 'dsd-toolbar-spacer' }),
-            h(
-              'div',
-              { className: 'dsd-search' },
-              icon('search', 13),
-              h('input', {
-                value: search,
-                placeholder: t('picker.search'),
-                'aria-label': t('picker.search'),
-                spellCheck: false,
-                onChange: (event) => setSearch(event.currentTarget.value),
-              }),
-            ),
-            h(
-              'button',
-              { className: 'dsd-btn', type: 'button', onClick: createFolder, title: t('action.newFolder') },
-              icon('folder-plus', 14),
-              h('span', null, t('action.newFolder')),
-            ),
-            h(
-              'button',
-              {
-                className: 'dsd-btn',
-                type: 'button',
-                'data-quiet': true,
-                'data-active': immersive ? 'true' : 'false',
-                title: immersive ? t('immersive.exit') : t('immersive.enter'),
-                'aria-label': immersive ? t('immersive.exit') : t('immersive.enter'),
-                'aria-pressed': immersive,
-                onClick: toggleImmersive,
-              },
-              icon(immersive ? 'collapse' : 'expand', 14),
-              h('span', null, t('immersive.short')),
             ),
           ),
           h(
@@ -3037,9 +3486,58 @@ body.dsd-immersive { overflow:hidden !important; }
                     )
                   : null,
                 allEntries.length > 0 && entries.length === 0 ? h('div', { className: 'dsd-no-match' }, t('picker.empty')) : null,
+                dragHintEntry && Number.isFinite(dragHintEntry.x) && Number.isFinite(dragHintEntry.y) && !pathDrop
+                  ? h(
+                      'div',
+                      {
+                        className: 'dsd-drag-hint',
+                        style: {
+                          left: `${clamp(dragHintEntry.x, PAD, Math.max(PAD, viewport.width - 220))}px`,
+                          top: `${dragHintEntry.y < 34 ? dragHintEntry.y + ICON_H + 8 : dragHintEntry.y - 30}px`,
+                        },
+                      },
+                      dragHintText,
+                    )
+                  : null,
               ),
             ),
           ),
+          pathDrop
+            ? h(
+                'div',
+                { className: 'dsd-path-drop' },
+                h(
+                  'div',
+                  { className: 'dsd-path-drop-head' },
+                  icon('folder', 20),
+                  h('strong', null, t('pathDrop.title')),
+                  h('span', null, t('pathDrop.hint')),
+                ),
+                h(
+                  'div',
+                  { className: 'dsd-path-drop-path' },
+                  pathSegments.map((segment, index) => {
+                    const value = segment.id === null ? '__root__' : segment.id
+                    return h(
+                      React.Fragment,
+                      { key: value },
+                      index > 0 ? h('span', { className: 'dsd-path-drop-arrow' }, icon('chevron', 18)) : null,
+                      h(
+                        'div',
+                        {
+                          className: 'dsd-path-drop-seg',
+                          'data-path-drop-id': value,
+                          'data-active': pathDropHover === value ? 'true' : 'false',
+                          'data-current': segment.current ? 'true' : 'false',
+                        },
+                        h('span', null, segment.name),
+                        segment.current ? h('em', null, t('pathDrop.current')) : null,
+                      ),
+                    )
+                  }),
+                ),
+              )
+            : null,
         )
 
       const renderBookmarksPanel = () => {
@@ -3194,6 +3692,68 @@ body.dsd-immersive { overflow:hidden !important; }
         )
       }
 
+      const renderBookmarkRail = () => {
+        if (bookmarkMarks.length === 0) return null
+        const nearest = (clientY, rail) => {
+          const rect = rail.getBoundingClientRect()
+          const y = clamp(clientY - rect.top, 0, rect.height)
+          let result = null
+          for (const mark of bookmarkMarks) {
+            const markY = clamp(mark.ratio, 0, 1) * rect.height
+            const distance = Math.abs(markY - y)
+            if (!result || distance < result.distance) result = { mark, y: markY, distance }
+          }
+          return result && result.distance <= 14 ? result : null
+        }
+        const setNearest = (event) => {
+          const result = nearest(event.clientY, event.currentTarget)
+          setBookmarkHover(result ? { mark: result.mark, y: result.y } : null)
+        }
+        return h(
+          'div',
+          {
+            className: 'dsd-bookmark-rail',
+            onPointerMove: setNearest,
+            onPointerLeave: () => setBookmarkHover(null),
+            onWheel: (event) => {
+              const result = nearest(event.clientY, event.currentTarget)
+              setBookmarkHover(result ? { mark: result.mark, y: result.y } : null)
+              const scroll = docScrollRef.current
+              if (scroll) {
+                scroll.scrollTop += event.deltaY
+              }
+            },
+            onClick: (event) => {
+              const result = nearest(event.clientY, event.currentTarget)
+              if (result) jumpToPosition(result.mark)
+            },
+          },
+          bookmarkMarks.map((mark) =>
+            h('button', {
+              key: mark.id,
+              className: 'dsd-bookmark-mark',
+              type: 'button',
+              'data-kind': mark.kind,
+              style: { top: `${clamp(mark.ratio, 0.01, 0.99) * 100}%` },
+              title: mark.label || t('bookmarks.noLabel'),
+              onClick: (event) => {
+                event.stopPropagation()
+                jumpToPosition(mark)
+              },
+            }),
+          ),
+          bookmarkHover
+            ? h(
+                'div',
+                { className: 'dsd-bookmark-rail-tip', style: { top: `${bookmarkHover.y}px` } },
+                h('strong', null, bookmarkHover.mark.label || t('bookmarks.noLabel')),
+                h('span', { className: 'dsd-bookmark-tip-meta' }, t('bookmarks.lastReadAt', { percent: Math.round(bookmarkHover.mark.ratio * 100), time: formatTime(bookmarkHover.mark.updatedAt || bookmarkHover.mark.createdAt) })),
+                bookmarkHover.mark.note ? h('span', { className: 'dsd-bookmark-tip-note' }, bookmarkHover.mark.note) : null,
+              )
+            : null,
+        )
+      }
+
       const renderDoc = () => {
         if (!activeItem) return null
         return h(
@@ -3201,30 +3761,54 @@ body.dsd-immersive { overflow:hidden !important; }
           { className: 'dsd-doc' },
           h(
             'div',
-            { className: 'dsd-doc-scroll', ref: docScrollRef, onScroll: handleDocScroll },
+            { className: 'dsd-readbar', 'data-empty': lastPosition ? 'false' : 'true' },
+            icon('bookmark', 14),
+            lastPosition
+              ? h(React.Fragment, null,
+                  h('strong', { className: 'dsd-readbar-title' }, t('bookmarks.lastRead')),
+                  h('span', { className: 'dsd-readbar-meta' }, t('bookmarks.lastReadAt', { percent: Math.round(lastPosition.ratio * 100), time: formatTime(lastPosition.updatedAt) })),
+                  lastPosition.label ? h('span', { className: 'dsd-readbar-label' }, lastPosition.label) : null,
+                )
+              : h('span', { className: 'dsd-readbar-label' }, t('bookmarks.noLast')),
+            h('span', { className: 'dsd-readbar-spacer' }),
+            lastPosition
+              ? h(
+                  'button',
+                  { className: 'dsd-btn', type: 'button', 'data-primary': true, onClick: () => jumpToPosition(lastPosition) },
+                  h('span', null, t('bookmarks.resume')),
+                )
+              : null,
+            h(
+              'button',
+              {
+                className: 'dsd-btn dsd-bookmark-toggle',
+                type: 'button',
+                'data-quiet': true,
+                'data-dsd-bookmark-toggle': 'true',
+                'data-active': bookmarksOpen ? 'true' : 'false',
+                title: t('bookmarks.open'),
+                'aria-label': t('bookmarks.open'),
+                onClick: () => setBookmarksOpen((previous) => !previous),
+              },
+              icon('bookmark', 15),
+              h('span', { className: 'dsd-bookmark-toggle-label' }, t('bookmarks.title')),
+              activeBookmarks.length > 0 ? h('span', { className: 'dsd-bookmark-count' }, activeBookmarks.length > 99 ? '99+' : String(activeBookmarks.length)) : null,
+            ),
+          ),
+          h(
+            'div',
+            { className: 'dsd-doc-reader' },
             h(
               'div',
-              { className: 'dsd-doc-inner' },
+              { className: 'dsd-doc-scroll', ref: docScrollRef, onScroll: handleDocScroll },
               h(
                 'div',
-                { className: 'dsd-doc-pathbar' },
-                icon('doc', 14),
-                h('span', { className: 'dsd-doc-path', title: activePath }, activePath),
+                { className: 'dsd-doc-inner' },
                 h(
-                  'button',
-                  {
-                    className: 'dsd-btn',
-                    type: 'button',
-                    'data-quiet': true,
-                    'data-dsd-bookmark-toggle': 'true',
-                    'data-active': bookmarksOpen ? 'true' : 'false',
-                    title: t('bookmarks.open'),
-                    'aria-label': t('bookmarks.open'),
-                    onClick: () => setBookmarksOpen((previous) => !previous),
-                  },
-                  icon('bookmark', 14),
-                  activeBookmarks.length > 0 ? h('span', { className: 'dsd-bookmark-count' }, activeBookmarks.length > 99 ? '99+' : String(activeBookmarks.length)) : null,
-                ),
+                  'div',
+                  { className: 'dsd-doc-pathbar' },
+                  icon('doc', 14),
+                  h('span', { className: 'dsd-doc-path', title: activePath }, activePath),
                 h(
                   'button',
                   { className: 'dsd-btn', type: 'button', 'data-quiet': true, title: t('action.copyPath'), 'aria-label': t('action.copyPath'), onClick: () => copyText(activePath) },
@@ -3250,41 +3834,6 @@ body.dsd-immersive { overflow:hidden !important; }
                   icon(immersive ? 'collapse' : 'expand', 14),
                 ),
               ),
-              doc.status === 'ready' && lastPosition && lastPosition.ratio > 0.015 && resumeDismissedPath !== activePath
-                ? h(
-                    'div',
-                    { className: 'dsd-resume' },
-                    icon('bookmark', 15),
-                    h(
-                      'div',
-                      { className: 'dsd-resume-main' },
-                      h('strong', null, t('bookmarks.lastRead')),
-                      h('span', { className: 'dsd-resume-meta' }, t('bookmarks.lastReadAt', { percent: Math.round(lastPosition.ratio * 100), time: formatTime(lastPosition.updatedAt) })),
-                      lastPosition.label ? h('div', { className: 'dsd-resume-label' }, lastPosition.label) : null,
-                    ),
-                    h(
-                      'div',
-                      { className: 'dsd-resume-actions' },
-                      h(
-                        'button',
-                        { className: 'dsd-btn', type: 'button', 'data-primary': true, onClick: () => jumpToPosition(lastPosition) },
-                        h('span', null, t('bookmarks.resume')),
-                      ),
-                      h(
-                        'button',
-                        {
-                          className: 'dsd-btn',
-                          type: 'button',
-                          'data-quiet': true,
-                          title: t('bookmarks.dismiss'),
-                          'aria-label': t('bookmarks.dismiss'),
-                          onClick: () => setResumeDismissedPath(activePath),
-                        },
-                        icon('close', 12),
-                      ),
-                    ),
-                  )
-                : null,
               doc.status === 'loading' ? h('div', { className: 'dsd-doc-loading' }, t('doc.loading')) : null,
               doc.status === 'error'
                 ? h(
@@ -3302,13 +3851,15 @@ body.dsd-immersive { overflow:hidden !important; }
               doc.status === 'ready'
                 ? h(
                     'div',
-                    { className: 'dsd-doc-body' },
+                    { className: 'dsd-doc-body', onContextMenu: onDocContextMenu },
                     doc.truncated ? h('div', { className: 'dsd-doc-note' }, t('doc.truncated')) : null,
                     doc.content.trim() === '' ? h('div', { className: 'dsd-doc-empty' }, t('doc.empty')) : renderMarkdown(doc.content, 'doc'),
                   )
                 : null,
             ),
           ),
+          renderBookmarkRail(),
+        ),
           bookmarksOpen ? renderBookmarksPanel() : null,
         )
       }
@@ -3425,6 +3976,17 @@ body.dsd-immersive { overflow:hidden !important; }
         )
       }
 
+      const folderTipFolder = folderTip ? library.folders[folderTip.id] || null : null
+      const folderTipCounts = folderTipFolder
+        ? {
+            folders: Object.values(library.folders).filter((folder) => (folder.parentId ?? null) === folderTipFolder.id).length,
+            files: Object.values(library.items).filter((item) => (item.folderId ?? null) === folderTipFolder.id).length,
+          }
+        : null
+      const dragHintEntry = drag && dropFolder ? allEntries.find((entry) => entry.kind === 'folder' && entry.id === dropFolder) || null : null
+      const dragHintGroup = drag ? dragRef.current?.group || [] : []
+      const dragHintText = dragHintGroup.length === 1 && dragHintGroup[0].kind === 'folder' ? t('drag.hintFolder') : t('drag.hintGroup')
+
       return h(
         'div',
         { className: 'dsd-panel', ref: panelRef, 'data-immersive': immersive ? 'true' : 'false' },
@@ -3459,6 +4021,29 @@ body.dsd-immersive { overflow:hidden !important; }
             )
           : null,
         picker.open ? renderPicker() : null,
+        docMenu && activePath
+          ? h(
+              'div',
+              { className: 'dsd-menu dsd-doc-context-menu', style: { left: `${docMenu.x}px`, top: `${docMenu.y}px` }, role: 'menu' },
+              h('div', { className: 'dsd-menu-title' }, docMenu.position.label || t('bookmarks.noLabel')),
+              h(
+                'button',
+                {
+                  className: 'dsd-menu-item',
+                  type: 'button',
+                  role: 'menuitem',
+                  onClick: () => {
+                    bookmarkStore.addBookmark(activePath, docMenu.position)
+                    flashBlock(docMenu.position)
+                    showToast(t('bookmarks.added'))
+                    setDocMenu(null)
+                  },
+                },
+                icon('bookmark', 14),
+                h('span', null, t('doc.addBookmark')),
+              ),
+            )
+          : null,
         menuBulk
           ? h(
               'div',
@@ -3471,13 +4056,13 @@ body.dsd-immersive { overflow:hidden !important; }
                     h(
                       'button',
                       {
-                        key: folder.id || 'root',
+                        key: folder.up ? 'up' : folder.id || 'root',
                         className: 'dsd-menu-item',
                         type: 'button',
                         role: 'menuitem',
                         onClick: () => moveSelection(folder.id),
                       },
-                      icon('folder', 14),
+                      icon(folder.up ? 'back' : 'folder', 14),
                       h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, folder.name),
                     ),
                   ),
@@ -3537,13 +4122,13 @@ body.dsd-immersive { overflow:hidden !important; }
                     h(
                       'button',
                       {
-                        key: folder.id || 'root',
+                        key: folder.up ? 'up' : folder.id || 'root',
                         className: 'dsd-menu-item',
                         type: 'button',
                         role: 'menuitem',
                         onClick: () => moveEntry(contextEntry, folder.id),
                       },
-                      icon('folder', 14),
+                      icon(folder.up ? 'back' : 'folder', 14),
                       h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, folder.name),
                     ),
                   ),
@@ -3582,6 +4167,20 @@ body.dsd-immersive { overflow:hidden !important; }
             )
           : null,
         toast ? h('div', { className: 'dsd-toast' }, toast) : null,
+        folderTipFolder && folderTipCounts
+          ? h(
+              'div',
+              {
+                className: 'dsd-folder-tip',
+                style: {
+                  left: `${clamp(folderTip.x + 12, 8, window.innerWidth - 210)}px`,
+                  top: `${clamp(folderTip.y + 14, 8, window.innerHeight - 70)}px`,
+                },
+              },
+              h('strong', null, folderTipFolder.name),
+              h('span', null, t('folder.tip', folderTipCounts)),
+            )
+          : null,
       )
     }
 

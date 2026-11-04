@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 — 2026-11-04
+
+- The last-read prompt is now a fixed document bar, so it stays visible while scrolling and while the bookmarks panel is open. The bookmark button moved into that bar, directly under the tab bar's Add files action, with an icon and a visible **书签 / Bookmarks** label.
+- Added bookmark position marks to the left of the document scrollbar. Hovering or using the wheel over the rail shows the bookmark title, percent, time and note; clicking jumps.
+- Right-clicking a rendered line offers **Insert bookmark at this line**; jumps flash the target block for three seconds with a theme-aware highlight that fades out.
+- Breadcrumbs now use chevron arrows, wrap before the search field, stop at two lines and scroll vertically when deeper paths exceed that.
+- A bundled manual is seeded once on first use as a normal synthetic document. It is kept concise and updated with each release; removing it does not re-add it.
+- Entering or leaving immersive mode no longer reorders the desktop. The reflow keeps the previous visual order.
+- Dragging centres the grabbed icon under the pointer. Groups follow with distance-based trailing delays, and a failed drop leaves the original order untouched. Successful moves no longer show the **Moved** toast.
+- The item context menu gains **Go up one level** before the root destination.
+- Hovering a folder for one second shows its direct folder and document counts.
+- New files added or moved into a folder get a single three-second highlight the first time that folder is opened.
+- Dragging out of the desktop opens a path-only drop mode: large, spaced breadcrumb segments with the current folder marked; hover highlights a segment and releasing moves the selection there.
+- Folder-over-folder drops swap positions; right-click while hovering puts the folder inside. Files over a folder still move in on drop, while right-click swaps the group into the folder slot. Group swaps lay items out in their original order, push the folder after them and shift following items.
+
 ## 0.2.9 — 2026-11-04
 
 - Added reading bookmarks: press `B` or use the bookmark button in the document path bar to mark the current position. Each document keeps its own list with percent, timestamp, title and optional note.
