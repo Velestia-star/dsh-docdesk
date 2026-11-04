@@ -21,7 +21,7 @@ window.__ModuleLoader__.load({
 
 ## 添加与整理
 - 右上角「添加文件」打开选择器；文件只会加入资料区，不会移动磁盘文件。
-- 拖动图标换位置；拖到另一个文件上会在它前面或后面插入，拖到两图标之间也可插入。多选会按原顺序放到目标文件后。
+- 拖动图标换位置；拖到另一个文件上会在它前面或后面插入，拖到两图标之间也可插入。多选会按原顺序放到目标文件后。插入位置会显示白色分叉标线。
 - 按住右键在空白处拖动可以框选；拖动任意选中项会整组移动。
 - 新建文件夹后，可以把文件拖进去；右键菜单也能移动。右键文件夹可以「解散文件夹」。
 - 向上拖出桌面才会进入路径投放模式；把鼠标移到路径上松开，就能放进那个文件夹。
@@ -1639,6 +1639,7 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-desktop { position:relative; flex:1; min-height:0; overflow:auto; border-radius:12px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); scrollbar-width:thin; scrollbar-gutter:stable; }
 .dsd-desktop-canvas { position:relative; width:100%; min-height:100%; background-color:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#f6f6f8) 62%, transparent); background-image:radial-gradient(circle, color-mix(in srgb, var(--dsw-alias-border-l2,#d0d0d8) 72%, transparent) 1px, transparent 1px); background-size:22px 22px; background-position:7px 7px; }
 .dsd-slot-ghost { position:absolute; width:88px; height:104px; border-radius:10px; border:1px dashed var(--dsw-alias-state-business-primary,#2f6fed); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 9%, transparent); pointer-events:none; z-index:1; }
+.dsd-insert-caret { position:absolute; width:24px; height:104px; color:#fff; pointer-events:none; z-index:24; filter:drop-shadow(0 0 2px rgba(0,0,0,.7)) drop-shadow(0 0 1px rgba(0,0,0,.5)); }
 .dsd-marquee { position:absolute; border:1px solid var(--dsw-alias-state-business-primary,#2f6fed); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 12%, transparent); border-radius:4px; pointer-events:none; z-index:20; }
 .dsd-selection-pill { display:inline-flex; align-items:center; gap:4px; height:24px; padding:0 8px; border-radius:999px; border:1px solid color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 40%, transparent); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 12%, transparent); color:var(--dsw-alias-state-business-primary,#2f6fed); font:inherit; font-size:11px; cursor:pointer; white-space:nowrap; }
 .dsd-selection-pill:hover { background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 20%, transparent); }
@@ -3547,7 +3548,20 @@ body.dsd-immersive { overflow:hidden !important; }
                 'div',
                 { className: 'dsd-desktop-canvas', style: { height: `${canvasHeight}px` } },
                 marquee ? h('div', { className: 'dsd-marquee', style: { left: `${marquee.left}px`, top: `${marquee.top}px`, width: `${marquee.width}px`, height: `${marquee.height}px` } }) : null,
-                drag && dropSlot ? h('div', { className: 'dsd-slot-ghost', style: { left: `${dropSlot.x}px`, top: `${dropSlot.y}px` } }) : null,
+                drag && dropSlot
+                  ? h(
+                      'svg',
+                      {
+                        className: 'dsd-insert-caret',
+                        viewBox: '0 0 24 104',
+                        style: { left: `${Math.max(2, dropSlot.x - (CELL_W - ICON_W) / 2 - 12)}px`, top: `${dropSlot.y}px` },
+                        'aria-hidden': 'true',
+                      },
+                      h('path', { d: 'M12 9V95', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' }),
+                      h('path', { d: 'M5.5 2L12 9L18.5 2', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+                      h('path', { d: 'M5.5 102L12 95L18.5 102', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+                    )
+                  : null,
                 entries.map(renderEntry),
                 allEntries.length === 0
                   ? h(

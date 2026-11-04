@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3 — 2026-11-04
+
+- Replaced the dashed insertion slot with a white insertion caret between icons: a vertical white line with split, flared ends at the top and bottom, drawn at the actual gap where a file or group will be inserted.
+
 ## 0.3.2 — 2026-11-04
 
 - Anchored the folder hover tooltip to the folder's actual screen rectangle: it now appears below the full icon and label (or above when there is no room), so the folder name and its counts no longer overlap the folder content.
