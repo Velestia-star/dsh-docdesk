@@ -12,6 +12,7 @@ window.__ModuleLoader__.load({
     const API_RESOLVE = '/api/dsh-docdesk/resolve'
     const MERMAID_URL = '/api/dsh-docdesk/mermaid.js'
     const STORAGE_KEY = 'dsh-docdesk.library.v2'
+    const BOOKMARK_KEY = 'dsh-docdesk.bookmarks.v1'
     const ICON_W = 88
     const ICON_H = 104
     const ICON_CENTER_Y = 44
@@ -68,6 +69,29 @@ window.__ModuleLoader__.load({
       'immersive.exit': '退出沉浸阅读 (Esc)',
       'immersive.exitLabel': '退出沉浸',
       'immersive.short': '沉浸',
+      'bookmarks.title': '书签',
+      'bookmarks.open': '书签（B）',
+      'bookmarks.lastRead': '上次阅读',
+      'bookmarks.resume': '继续阅读',
+      'bookmarks.clear': '清除位置',
+      'bookmarks.addHere': '在当前位置添加书签',
+      'bookmarks.added': '已添加书签',
+      'bookmarks.empty': '还没有书签。按 B 或点上方按钮添加。',
+      'bookmarks.noLast': '还没有阅读记录',
+      'bookmarks.noLabel': '当前阅读位置',
+      'bookmarks.positionLabel': '阅读位置 {percent}%',
+      'bookmarks.lastReadAt': '{percent}% · {time}',
+      'bookmarks.count': '{count} 个书签',
+      'bookmarks.edit': '编辑',
+      'bookmarks.delete': '删除',
+      'bookmarks.deleted': '已删除书签',
+      'bookmarks.cleared': '已清除阅读位置',
+      'bookmarks.updated': '书签已更新',
+      'bookmarks.label': '书签标题',
+      'bookmarks.note': '备注（可选）',
+      'bookmarks.save': '保存',
+      'bookmarks.cancel': '取消',
+      'bookmarks.dismiss': '隐藏上次阅读提示',
       'chart.invalid': '图表数据无法解析，已显示原始代码。',
       'chart.source': '查看数据',
       'chart.empty': '图表没有可显示的数据',
@@ -165,6 +189,29 @@ window.__ModuleLoader__.load({
       'immersive.exit': 'Exit immersive reading (Esc)',
       'immersive.exitLabel': 'Exit immersive',
       'immersive.short': 'Immersive',
+      'bookmarks.title': 'Bookmarks',
+      'bookmarks.open': 'Bookmarks (B)',
+      'bookmarks.lastRead': 'Last read',
+      'bookmarks.resume': 'Resume reading',
+      'bookmarks.clear': 'Clear position',
+      'bookmarks.addHere': 'Add bookmark here',
+      'bookmarks.added': 'Bookmark added',
+      'bookmarks.empty': 'No bookmarks yet. Press B or use the button above.',
+      'bookmarks.noLast': 'No reading position yet',
+      'bookmarks.noLabel': 'Current reading position',
+      'bookmarks.positionLabel': 'Reading position {percent}%',
+      'bookmarks.lastReadAt': '{percent}% · {time}',
+      'bookmarks.count': '{count} bookmarks',
+      'bookmarks.edit': 'Edit',
+      'bookmarks.delete': 'Delete',
+      'bookmarks.deleted': 'Bookmark removed',
+      'bookmarks.cleared': 'Reading position cleared',
+      'bookmarks.updated': 'Bookmark updated',
+      'bookmarks.label': 'Bookmark title',
+      'bookmarks.note': 'Note (optional)',
+      'bookmarks.save': 'Save',
+      'bookmarks.cancel': 'Cancel',
+      'bookmarks.dismiss': 'Hide last-read prompt',
       'chart.invalid': 'Chart data could not be parsed; the raw code is shown below.',
       'chart.source': 'View data',
       'chart.empty': 'The chart has no data to show',
@@ -466,6 +513,166 @@ window.__ModuleLoader__.load({
       return snapshot
     }
 
+    /* ----------------------------------------------------------- bookmarks */
+
+    function emptyBookmarks() {
+      return { version: 1, positions: {}, bookmarks: {} }
+    }
+
+    function loadBookmarks() {
+      try {
+        const raw = localStorage.getItem(BOOKMARK_KEY)
+        if (!raw) return emptyBookmarks()
+        const parsed = JSON.parse(raw)
+        if (!parsed || parsed.version !== 1) return emptyBookmarks()
+        const positions = {}
+        for (const [path, value] of Object.entries(parsed.positions || {})) {
+          if (typeof path !== 'string' || !value || !Number.isFinite(value.ratio)) continue
+          positions[path] = {
+            ratio: clamp(value.ratio, 0, 1),
+            blockIndex: Number.isFinite(value.blockIndex) ? Math.max(0, Math.floor(value.blockIndex)) : 0,
+            label: typeof value.label === 'string' ? value.label.slice(0, 120) : '',
+            updatedAt: Number.isFinite(value.updatedAt) ? value.updatedAt : Date.now(),
+          }
+        }
+        const bookmarks = {}
+        for (const [path, list] of Object.entries(parsed.bookmarks || {})) {
+          if (typeof path !== 'string' || !Array.isArray(list)) continue
+          const entries = []
+          for (const value of list) {
+            if (!value || typeof value.id !== 'string' || !Number.isFinite(value.ratio)) continue
+            entries.push({
+              id: value.id,
+              ratio: clamp(value.ratio, 0, 1),
+              blockIndex: Number.isFinite(value.blockIndex) ? Math.max(0, Math.floor(value.blockIndex)) : 0,
+              label: typeof value.label === 'string' ? value.label.slice(0, 120) : '',
+              note: typeof value.note === 'string' ? value.note.slice(0, 300) : '',
+              createdAt: Number.isFinite(value.createdAt) ? value.createdAt : Date.now(),
+            })
+          }
+          if (entries.length > 0) bookmarks[path] = entries.slice(0, 200)
+        }
+        return { version: 1, positions, bookmarks }
+      } catch {
+        return emptyBookmarks()
+      }
+    }
+
+    function createBookmarkStore() {
+      let state = loadBookmarks()
+      const listeners = new Set()
+      const save = () => {
+        try {
+          localStorage.setItem(BOOKMARK_KEY, JSON.stringify(state))
+        } catch {
+          /* storage may be unavailable */
+        }
+      }
+      const emit = () => {
+        for (const listener of [...listeners]) {
+          try {
+            listener()
+          } catch {
+            /* a bad subscriber must not break the store */
+          }
+        }
+      }
+      const update = (mutator) => {
+        const next = mutator(state)
+        if (!next || next === state) return state
+        state = next
+        save()
+        emit()
+        return state
+      }
+      return {
+        getState: () => state,
+        subscribe(listener) {
+          listeners.add(listener)
+          return () => listeners.delete(listener)
+        },
+        // Reading positions are saved silently; scrolling should not re-render the document.
+        savePosition(path, position) {
+          if (typeof path !== 'string' || !position) return
+          state = {
+            ...state,
+            positions: {
+              ...state.positions,
+              [path]: {
+                ratio: clamp(Number(position.ratio) || 0, 0, 1),
+                blockIndex: Number.isFinite(position.blockIndex) ? Math.max(0, Math.floor(position.blockIndex)) : 0,
+                label: typeof position.label === 'string' ? position.label.slice(0, 120) : '',
+                updatedAt: Date.now(),
+              },
+            },
+          }
+          save()
+        },
+        addBookmark(path, position) {
+          if (typeof path !== 'string' || !position) return null
+          const entry = {
+            id: `b_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`,
+            ratio: clamp(Number(position.ratio) || 0, 0, 1),
+            blockIndex: Number.isFinite(position.blockIndex) ? Math.max(0, Math.floor(position.blockIndex)) : 0,
+            label: typeof position.label === 'string' ? position.label.slice(0, 120) : '',
+            note: '',
+            createdAt: Date.now(),
+          }
+          update((previous) => ({
+            ...previous,
+            bookmarks: {
+              ...previous.bookmarks,
+              [path]: [entry, ...(previous.bookmarks[path] || [])].slice(0, 200),
+            },
+          }))
+          return entry
+        },
+        updateBookmark(path, id, patch) {
+          update((previous) => {
+            const list = previous.bookmarks[path]
+            if (!list) return previous
+            const next = list.map((entry) =>
+              entry.id === id
+                ? {
+                    ...entry,
+                    label: typeof patch?.label === 'string' ? patch.label.slice(0, 120) : entry.label,
+                    note: typeof patch?.note === 'string' ? patch.note.slice(0, 300) : entry.note,
+                  }
+                : entry,
+            )
+            return { ...previous, bookmarks: { ...previous.bookmarks, [path]: next } }
+          })
+        },
+        removeBookmark(path, id) {
+          update((previous) => {
+            const list = previous.bookmarks[path]
+            if (!list) return previous
+            const next = list.filter((entry) => entry.id !== id)
+            const bookmarks = { ...previous.bookmarks }
+            if (next.length > 0) bookmarks[path] = next
+            else delete bookmarks[path]
+            return { ...previous, bookmarks }
+          })
+        },
+        clearPosition(path) {
+          update((previous) => {
+            if (!previous.positions[path]) return previous
+            const positions = { ...previous.positions }
+            delete positions[path]
+            return { ...previous, positions }
+          })
+        },
+      }
+    }
+
+    const bookmarkStore = createBookmarkStore()
+
+    function useBookmarks() {
+      const [snapshot, setSnapshot] = useState(bookmarkStore.getState())
+      useEffect(() => bookmarkStore.subscribe(() => setSnapshot(bookmarkStore.getState())), [])
+      return snapshot
+    }
+
     /* ------------------------------------------------------------ helpers */
 
     function formatTime(value) {
@@ -685,6 +892,8 @@ window.__ModuleLoader__.load({
           return paths(['M9 4H4v5', 'M15 4h5v5', 'M20 15v5h-5', 'M9 20H4v-5'])
         case 'collapse':
           return paths(['M9 4v5H4', 'M15 4v5h5', 'M20 15h-5v5', 'M4 15h5v5'])
+        case 'bookmark':
+          return paths(['M6.5 4h11v17l-5.5-3.8L6.5 21z'])
         default:
           return paths(['M12 5v14', 'M5 12h14'])
       }
@@ -1320,11 +1529,48 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-empty-title { margin:0; font-size:14px; font-weight:600; color:var(--dsw-alias-label-primary,#1b1b1f); }
 .dsd-empty-hint { margin:0; max-width:420px; font-size:12px; line-height:1.65; }
 .dsd-no-match { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:12.5px; }
-.dsd-doc { flex:1; min-height:0; display:flex; flex-direction:column; }
+.dsd-doc { flex:1; min-height:0; display:flex; flex-direction:column; position:relative; }
 .dsd-doc-scroll { flex:1; min-height:0; overflow:auto; scrollbar-width:thin; }
 .dsd-doc-inner { max-width:880px; margin:0 auto; padding:18px 30px 64px; }
 .dsd-doc-pathbar { display:flex; align-items:center; gap:8px; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--dsw-alias-border-l1,#e4e4ea); color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-doc-pathbar > svg { flex:none; }
+.dsd-bookmark-count { min-width:15px; height:15px; padding:0 4px; border-radius:999px; background:var(--dsw-alias-state-business-primary,#2f6fed); color:var(--dsw-alias-label-primary-foreground,#0f1115); font-size:9.5px; line-height:15px; font-weight:700; text-align:center; }
+.dsd-resume { display:flex; align-items:flex-start; gap:10px; margin:0 0 16px; padding:10px 12px; border:1px solid color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 28%, var(--dsw-alias-border-l1,#e4e4ea)); border-radius:10px; background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 8%, transparent); color:var(--dsw-alias-label-primary,#1b1b1f); }
+.dsd-resume > svg { flex:none; margin-top:2px; color:var(--dsw-alias-state-business-primary,#2f6fed); }
+.dsd-resume-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.dsd-resume-meta { font-size:11px; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-resume-label { font-size:11.5px; color:var(--dsw-alias-label-secondary,#6b6b76); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dsd-resume-actions { flex:none; display:flex; align-items:center; gap:4px; }
+.dsd-bookmarks-popover { position:absolute; top:48px; right:12px; z-index:70; width:min(340px, calc(100% - 24px)); max-height:min(72vh, 560px); overflow:auto; padding:10px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); border-radius:12px; background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); box-shadow:0 16px 40px rgba(0,0,0,.22); }
+.dsd-bookmarks-head { display:flex; align-items:center; gap:8px; padding:2px 2px 8px; }
+.dsd-bookmarks-head strong { font-size:13px; }
+.dsd-bookmarks-head-count { flex:1; min-width:0; font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-bookmarks-last { padding:9px 10px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); border-radius:9px; background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#f6f6f8) 58%, transparent); }
+.dsd-bookmarks-section-title { margin-bottom:5px; font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-bookmarks-last-meta { font-size:11px; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-bookmarks-last-label { margin:4px 0 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--dsw-alias-label-primary,#1b1b1f); }
+.dsd-bookmarks-last-actions { display:flex; flex-wrap:wrap; gap:5px; }
+.dsd-bookmarks-hint { font-size:11.5px; color:var(--dsw-alias-label-secondary,#6b6b76); line-height:1.5; }
+.dsd-bookmarks-add { display:flex; align-items:center; gap:8px; margin:10px 0; }
+.dsd-bookmarks-add .dsd-btn { flex:1; justify-content:flex-start; }
+.dsd-bookmark-kbd { flex:none; padding:1px 5px; border:1px solid var(--dsw-alias-border-l2,#d0d0d8); border-radius:4px; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:10px; line-height:1.4; }
+.dsd-bookmarks-list { display:flex; flex-direction:column; gap:6px; }
+.dsd-bookmarks-empty { padding:12px 4px; text-align:center; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11.5px; line-height:1.5; }
+.dsd-bookmark-item { display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-top:1px solid var(--dsw-alias-border-l1,#e4e4ea); }
+.dsd-bookmark-main { flex:1; min-width:0; padding:0; border:none; background:transparent; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.dsd-bookmark-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--dsw-alias-label-primary,#1b1b1f); }
+.dsd-bookmark-note { margin-top:2px; font-size:11px; line-height:1.5; color:var(--dsw-alias-label-secondary,#6b6b76); white-space:normal; }
+.dsd-bookmark-meta { margin-top:3px; font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-bookmark-actions { flex:none; display:flex; gap:2px; }
+.dsd-bookmark-action { padding:3px 4px; border:none; border-radius:4px; background:transparent; color:var(--dsw-alias-label-secondary,#6b6b76); font:inherit; font-size:10.5px; cursor:pointer; }
+.dsd-bookmark-action:hover { background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 8%, transparent); color:var(--dsw-alias-label-primary,#1b1b1f); }
+.dsd-bookmark-action[data-danger] { color:var(--dsw-alias-state-error-primary,#c62f45); }
+.dsd-bookmark-editor { display:flex; flex-direction:column; gap:6px; margin:4px 0 8px; padding:8px; border:1px solid color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 35%, var(--dsw-alias-border-l1,#e4e4ea)); border-radius:8px; background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 5%, transparent); }
+.dsd-bookmark-editor-title { font-size:10.5px; font-weight:700; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-bookmark-editor input, .dsd-bookmark-editor textarea { width:100%; box-sizing:border-box; padding:6px 7px; border:1px solid var(--dsw-alias-border-l2,#d0d0d8); border-radius:6px; background:var(--dsw-specific-input-major,var(--dsw-alias-bg-base,#fff)); color:inherit; font:inherit; font-size:12px; outline:none; }
+.dsd-bookmark-editor textarea { min-height:44px; resize:vertical; }
+.dsd-bookmark-editor input:focus, .dsd-bookmark-editor textarea:focus { border-color:var(--dsw-alias-state-business-primary,#2f6fed); }
+.dsd-bookmark-editor-actions { display:flex; justify-content:flex-end; gap:6px; }
 .dsd-doc-path { flex:1; min-width:0; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; line-height:1.5; word-break:break-all; }
 .dsd-doc-body { font-size:13.5px; line-height:1.75; }
 .dsd-doc-note { margin-bottom:14px; padding:7px 10px; border-radius:8px; border:1px dashed var(--dsw-alias-border-l2,#d0d0d8); font-size:11.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
@@ -1553,10 +1799,14 @@ body.dsd-immersive { overflow:hidden !important; }
 
     function PanelPage({ toggleHostSidebar }) {
       const library = useLibrary()
+      const bookmarks = useBookmarks()
       const [currentFolder, setCurrentFolder] = useState(null)
       const [viewport, setViewport] = useState({ width: 0, height: 0 })
       const [selected, setSelected] = useState(() => new Set())
       const [immersive, setImmersive] = useState(false)
+      const [bookmarksOpen, setBookmarksOpen] = useState(false)
+      const [bookmarkEdit, setBookmarkEdit] = useState(null)
+      const [resumeDismissedPath, setResumeDismissedPath] = useState(null)
       const [menu, setMenu] = useState(null)
       const [renaming, setRenaming] = useState(null)
       const [drag, setDrag] = useState(null)
@@ -1572,6 +1822,10 @@ body.dsd-immersive { overflow:hidden !important; }
 
       const panelRef = useRef(null)
       const desktopRef = useRef(null)
+      const docScrollRef = useRef(null)
+      const docScrollSaveTimer = useRef(0)
+      const readingReadyRef = useRef(false)
+      const positionSaveBlockedUntil = useRef(0)
       const dragRef = useRef(null)
       const marqueeRef = useRef(null)
       const selectedRef = useRef(selected)
@@ -1595,6 +1849,7 @@ body.dsd-immersive { overflow:hidden !important; }
 
       useEffect(() => () => {
         window.clearTimeout(toastTimer.current)
+        window.clearTimeout(docScrollSaveTimer.current)
         try {
           docAbort.current?.abort()
         } catch {
@@ -1705,6 +1960,109 @@ body.dsd-immersive { overflow:hidden !important; }
 
       const activePath = library.activeTab === 'home' ? null : library.activeTab
       const activeItem = activePath ? library.items[activePath] : null
+      const lastPosition = activePath ? bookmarkStore.getState().positions[activePath] || null : null
+      const activeBookmarks = useMemo(() => {
+        if (!activePath) return []
+        return [...(bookmarks.bookmarks[activePath] || [])].sort((left, right) => left.ratio - right.ratio || left.createdAt - right.createdAt)
+      }, [bookmarks, activePath])
+
+      const captureDocPosition = useCallback(() => {
+        const scroll = docScrollRef.current
+        if (!scroll) return null
+        const max = Math.max(0, scroll.scrollHeight - scroll.clientHeight)
+        const ratio = max > 0 ? clamp(scroll.scrollTop / max, 0, 1) : 0
+        let blockIndex = 0
+        let label = ''
+        const body = scroll.querySelector('.dsd-doc-body')
+        if (body) {
+          const children = Array.from(body.children)
+          const viewportTop = scroll.getBoundingClientRect().top
+          let headingLabel = ''
+          for (const heading of body.querySelectorAll('h1,h2,h3,h4')) {
+            if (heading.getBoundingClientRect().top - viewportTop <= 8) {
+              headingLabel = (heading.innerText || heading.textContent || '').replace(/\s+/gu, ' ').trim()
+            } else {
+              break
+            }
+          }
+          let best = 0
+          for (let index = 0; index < children.length; index += 1) {
+            const rect = children[index].getBoundingClientRect()
+            if (rect.top - viewportTop <= 28) best = index
+            else break
+          }
+          const block = children[best]
+          blockIndex = best
+          const blockLabel = (block?.innerText || block?.textContent || '').replace(/\s+/gu, ' ').trim()
+          if (headingLabel) label = headingLabel
+          else if (blockLabel) label = blockLabel.replace(/`{2,}[A-Za-z0-9_-]*/gu, ' ').replace(/\s+/gu, ' ').trim()
+        }
+        if (!label) label = t('bookmarks.positionLabel', { percent: Math.round(ratio * 100) })
+        return { ratio, blockIndex, label: label.slice(0, 80), updatedAt: Date.now() }
+      }, [])
+
+      const jumpToPosition = useCallback((position) => {
+        const scroll = docScrollRef.current
+        if (!scroll || !position) return
+        const max = Math.max(0, scroll.scrollHeight - scroll.clientHeight)
+        const top = clamp(Number(position.ratio) || 0, 0, 1) * max
+        try {
+          scroll.scrollTo({ top, behavior: 'smooth' })
+        } catch {
+          scroll.scrollTop = top
+        }
+        setBookmarksOpen(false)
+        setBookmarkEdit(null)
+      }, [])
+
+      const addBookmark = useCallback(() => {
+        if (!activePath || doc.status !== 'ready') return
+        const position = captureDocPosition()
+        if (!position) return
+        bookmarkStore.addBookmark(activePath, position)
+        showToast(t('bookmarks.added'))
+      }, [activePath, doc.status, captureDocPosition, showToast])
+
+      const handleDocScroll = useCallback(() => {
+        if (!activePath || !readingReadyRef.current || Date.now() < positionSaveBlockedUntil.current) return
+        window.clearTimeout(docScrollSaveTimer.current)
+        docScrollSaveTimer.current = window.setTimeout(() => {
+          if (!activePath || !readingReadyRef.current || Date.now() < positionSaveBlockedUntil.current) return
+          const position = captureDocPosition()
+          if (position) bookmarkStore.savePosition(activePath, position)
+        }, 250)
+      }, [activePath, captureDocPosition])
+
+      useEffect(() => {
+        readingReadyRef.current = false
+        window.clearTimeout(docScrollSaveTimer.current)
+        if (!activePath || doc.status !== 'ready') return undefined
+        const timer = window.setTimeout(() => {
+          readingReadyRef.current = true
+        }, 500)
+        return () => {
+          window.clearTimeout(timer)
+          readingReadyRef.current = false
+        }
+      }, [activePath, doc.status])
+
+      useEffect(() => {
+        setBookmarksOpen(false)
+        setBookmarkEdit(null)
+        if (docScrollRef.current) docScrollRef.current.scrollTop = 0
+      }, [activePath])
+
+      useEffect(() => {
+        if (!bookmarksOpen) return undefined
+        const onDown = (event) => {
+          const target = event.target
+          if (target && target.closest && (target.closest('.dsd-bookmarks-popover') || target.closest('[data-dsd-bookmark-toggle]'))) return
+          setBookmarksOpen(false)
+          setBookmarkEdit(null)
+        }
+        document.addEventListener('pointerdown', onDown, true)
+        return () => document.removeEventListener('pointerdown', onDown, true)
+      }, [bookmarksOpen])
 
       const restoreImmersive = useCallback(() => {
         const saved = scrollLockRef.current
@@ -2305,6 +2663,11 @@ body.dsd-immersive { overflow:hidden !important; }
             toggleImmersive()
             return
           }
+          if ((event.key === 'b' || event.key === 'B') && !event.repeat && !editing && panelVisible && activePath && doc.status === 'ready' && !picker.open && !renaming && !confirmState && !menu && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            event.preventDefault()
+            addBookmark()
+            return
+          }
           if (event.key === 'Escape') {
             if (menu) return setMenu(null)
             if (renaming) {
@@ -2313,6 +2676,11 @@ body.dsd-immersive { overflow:hidden !important; }
             }
             if (confirmState) return setConfirmState(null)
             if (picker.open) return closePicker()
+            if (bookmarksOpen) {
+              setBookmarksOpen(false)
+              setBookmarkEdit(null)
+              return
+            }
             if (immersive) {
               event.preventDefault()
               return exitImmersive()
@@ -2330,7 +2698,7 @@ body.dsd-immersive { overflow:hidden !important; }
         }
         document.addEventListener('keydown', onKey)
         return () => document.removeEventListener('keydown', onKey)
-      }, [menu, renaming, confirmState, picker.open, selected, library.activeTab, deleteSelection, closePicker, immersive, toggleImmersive, exitImmersive])
+      }, [menu, renaming, confirmState, picker.open, selected, library.activeTab, deleteSelection, closePicker, immersive, toggleImmersive, exitImmersive, bookmarksOpen, activePath, doc.status, addBookmark])
 
       const chain = useMemo(() => folderChain(library.folders, currentFolder), [library.folders, currentFolder])
       const contextEntry = useMemo(() => {
@@ -2674,6 +3042,158 @@ body.dsd-immersive { overflow:hidden !important; }
           ),
         )
 
+      const renderBookmarksPanel = () => {
+        if (!activePath) return null
+        const close = () => {
+          setBookmarksOpen(false)
+          setBookmarkEdit(null)
+        }
+        const saveEdit = () => {
+          if (!bookmarkEdit) return
+          bookmarkStore.updateBookmark(activePath, bookmarkEdit.id, { label: bookmarkEdit.label.trim(), note: bookmarkEdit.note.trim() })
+          setBookmarkEdit(null)
+          showToast(t('bookmarks.updated'))
+        }
+        const removeBookmark = (entry) => {
+          bookmarkStore.removeBookmark(activePath, entry.id)
+          if (bookmarkEdit?.id === entry.id) setBookmarkEdit(null)
+          showToast(t('bookmarks.deleted'))
+        }
+        return h(
+          'div',
+          { className: 'dsd-bookmarks-popover', 'data-dsd-bookmarks': 'true' },
+          h(
+            'div',
+            { className: 'dsd-bookmarks-head' },
+            h('strong', null, t('bookmarks.title')),
+            activeBookmarks.length > 0 ? h('span', { className: 'dsd-bookmarks-head-count' }, t('bookmarks.count', { count: activeBookmarks.length })) : null,
+            h(
+              'button',
+              { className: 'dsd-btn', type: 'button', 'data-quiet': true, title: t('action.close'), 'aria-label': t('action.close'), onClick: close },
+              icon('close', 14),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'dsd-bookmarks-last' },
+            h('div', { className: 'dsd-bookmarks-section-title' }, t('bookmarks.lastRead')),
+            lastPosition
+              ? h(
+                  'div',
+                  { className: 'dsd-bookmarks-last-body' },
+                  h('div', { className: 'dsd-bookmarks-last-meta' }, t('bookmarks.lastReadAt', { percent: Math.round(lastPosition.ratio * 100), time: formatTime(lastPosition.updatedAt) })),
+                  h('div', { className: 'dsd-bookmarks-last-label' }, lastPosition.label || t('bookmarks.noLabel')),
+                  h(
+                    'div',
+                    { className: 'dsd-bookmarks-last-actions' },
+                    h(
+                      'button',
+                      { className: 'dsd-btn', type: 'button', 'data-primary': true, onClick: () => jumpToPosition(lastPosition) },
+                      icon('bookmark', 13),
+                      h('span', null, t('bookmarks.resume')),
+                    ),
+                    h(
+                      'button',
+                      {
+                        className: 'dsd-btn',
+                        type: 'button',
+                        'data-quiet': true,
+                        onClick: () => {
+                          positionSaveBlockedUntil.current = Date.now() + 800
+                          window.clearTimeout(docScrollSaveTimer.current)
+                          bookmarkStore.clearPosition(activePath)
+                          showToast(t('bookmarks.cleared'))
+                        },
+                      },
+                      h('span', null, t('bookmarks.clear')),
+                    ),
+                  ),
+                )
+              : h('div', { className: 'dsd-bookmarks-hint' }, t('bookmarks.noLast')),
+          ),
+          h(
+            'div',
+            { className: 'dsd-bookmarks-add' },
+            h(
+              'button',
+              { className: 'dsd-btn', type: 'button', 'data-primary': true, onClick: addBookmark },
+              icon('bookmark', 14),
+              h('span', null, t('bookmarks.addHere')),
+            ),
+            h('span', { className: 'dsd-bookmark-kbd' }, 'B'),
+          ),
+          bookmarkEdit
+            ? h(
+                'div',
+                { className: 'dsd-bookmark-editor' },
+                h('div', { className: 'dsd-bookmark-editor-title' }, t('bookmarks.edit')),
+                h('input', {
+                  value: bookmarkEdit.label,
+                  placeholder: t('bookmarks.label'),
+                  spellCheck: false,
+                  onChange: (event) => {
+                    const value = event.currentTarget.value
+                    setBookmarkEdit((previous) => (previous ? { ...previous, label: value } : previous))
+                  },
+                  onKeyDown: (event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      saveEdit()
+                    } else if (event.key === 'Escape') {
+                      event.preventDefault()
+                      setBookmarkEdit(null)
+                    }
+                  },
+                }),
+                h('textarea', {
+                  value: bookmarkEdit.note,
+                  placeholder: t('bookmarks.note'),
+                  rows: 2,
+                  onChange: (event) => {
+                    const value = event.currentTarget.value
+                    setBookmarkEdit((previous) => (previous ? { ...previous, note: value } : previous))
+                  },
+                }),
+                h(
+                  'div',
+                  { className: 'dsd-bookmark-editor-actions' },
+                  h('button', { className: 'dsd-btn', type: 'button', 'data-primary': true, onClick: saveEdit }, h('span', null, t('bookmarks.save'))),
+                  h('button', { className: 'dsd-btn', type: 'button', 'data-quiet': true, onClick: () => setBookmarkEdit(null) }, h('span', null, t('bookmarks.cancel'))),
+                ),
+              )
+            : null,
+          h(
+            'div',
+            { className: 'dsd-bookmarks-list' },
+            activeBookmarks.length === 0
+              ? h('div', { className: 'dsd-bookmarks-empty' }, t('bookmarks.empty'))
+              : activeBookmarks.map((entry) =>
+                  h(
+                    'div',
+                    { className: 'dsd-bookmark-item', key: entry.id },
+                    h(
+                      'button',
+                      { className: 'dsd-bookmark-main', type: 'button', onClick: () => jumpToPosition(entry) },
+                      h('div', { className: 'dsd-bookmark-label' }, entry.label || t('bookmarks.noLabel')),
+                      entry.note ? h('div', { className: 'dsd-bookmark-note' }, entry.note) : null,
+                      h('div', { className: 'dsd-bookmark-meta' }, t('bookmarks.lastReadAt', { percent: Math.round(entry.ratio * 100), time: formatTime(entry.createdAt) })),
+                    ),
+                    h(
+                      'div',
+                      { className: 'dsd-bookmark-actions' },
+                      h(
+                        'button',
+                        { className: 'dsd-bookmark-action', type: 'button', onClick: () => setBookmarkEdit({ id: entry.id, label: entry.label, note: entry.note }) },
+                        t('bookmarks.edit'),
+                      ),
+                      h('button', { className: 'dsd-bookmark-action', type: 'button', 'data-danger': true, onClick: () => removeBookmark(entry) }, t('bookmarks.delete')),
+                    ),
+                  ),
+                ),
+          ),
+        )
+      }
+
       const renderDoc = () => {
         if (!activeItem) return null
         return h(
@@ -2681,7 +3201,7 @@ body.dsd-immersive { overflow:hidden !important; }
           { className: 'dsd-doc' },
           h(
             'div',
-            { className: 'dsd-doc-scroll' },
+            { className: 'dsd-doc-scroll', ref: docScrollRef, onScroll: handleDocScroll },
             h(
               'div',
               { className: 'dsd-doc-inner' },
@@ -2690,6 +3210,21 @@ body.dsd-immersive { overflow:hidden !important; }
                 { className: 'dsd-doc-pathbar' },
                 icon('doc', 14),
                 h('span', { className: 'dsd-doc-path', title: activePath }, activePath),
+                h(
+                  'button',
+                  {
+                    className: 'dsd-btn',
+                    type: 'button',
+                    'data-quiet': true,
+                    'data-dsd-bookmark-toggle': 'true',
+                    'data-active': bookmarksOpen ? 'true' : 'false',
+                    title: t('bookmarks.open'),
+                    'aria-label': t('bookmarks.open'),
+                    onClick: () => setBookmarksOpen((previous) => !previous),
+                  },
+                  icon('bookmark', 14),
+                  activeBookmarks.length > 0 ? h('span', { className: 'dsd-bookmark-count' }, activeBookmarks.length > 99 ? '99+' : String(activeBookmarks.length)) : null,
+                ),
                 h(
                   'button',
                   { className: 'dsd-btn', type: 'button', 'data-quiet': true, title: t('action.copyPath'), 'aria-label': t('action.copyPath'), onClick: () => copyText(activePath) },
@@ -2715,6 +3250,41 @@ body.dsd-immersive { overflow:hidden !important; }
                   icon(immersive ? 'collapse' : 'expand', 14),
                 ),
               ),
+              doc.status === 'ready' && lastPosition && lastPosition.ratio > 0.015 && resumeDismissedPath !== activePath
+                ? h(
+                    'div',
+                    { className: 'dsd-resume' },
+                    icon('bookmark', 15),
+                    h(
+                      'div',
+                      { className: 'dsd-resume-main' },
+                      h('strong', null, t('bookmarks.lastRead')),
+                      h('span', { className: 'dsd-resume-meta' }, t('bookmarks.lastReadAt', { percent: Math.round(lastPosition.ratio * 100), time: formatTime(lastPosition.updatedAt) })),
+                      lastPosition.label ? h('div', { className: 'dsd-resume-label' }, lastPosition.label) : null,
+                    ),
+                    h(
+                      'div',
+                      { className: 'dsd-resume-actions' },
+                      h(
+                        'button',
+                        { className: 'dsd-btn', type: 'button', 'data-primary': true, onClick: () => jumpToPosition(lastPosition) },
+                        h('span', null, t('bookmarks.resume')),
+                      ),
+                      h(
+                        'button',
+                        {
+                          className: 'dsd-btn',
+                          type: 'button',
+                          'data-quiet': true,
+                          title: t('bookmarks.dismiss'),
+                          'aria-label': t('bookmarks.dismiss'),
+                          onClick: () => setResumeDismissedPath(activePath),
+                        },
+                        icon('close', 12),
+                      ),
+                    ),
+                  )
+                : null,
               doc.status === 'loading' ? h('div', { className: 'dsd-doc-loading' }, t('doc.loading')) : null,
               doc.status === 'error'
                 ? h(
@@ -2739,6 +3309,7 @@ body.dsd-immersive { overflow:hidden !important; }
                 : null,
             ),
           ),
+          bookmarksOpen ? renderBookmarksPanel() : null,
         )
       }
 

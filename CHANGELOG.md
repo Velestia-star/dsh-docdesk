@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.9 — 2026-11-04
+
+- Added reading bookmarks: press `B` or use the bookmark button in the document path bar to mark the current position. Each document keeps its own list with percent, timestamp, title and optional note.
+- Added an automatic last-read position per document, saved while scrolling. When a document is reopened, a banner shows where you left off with a **Resume reading** action; the bookmark panel also has a last-read card.
+- Bookmarks can be jumped to, renamed, annotated, deleted and counted; the automatic reading position can be cleared.
+- Bookmark positions and notes are stored in the browser under `dsh-docdesk.bookmarks.v1`; Markdown files on disk are untouched.
+- Bookmarks and the resume banner work in normal and immersive reading modes.
+
 ## 0.2.8 — 2026-11-01
 
 - Immersive mode is now available from the library home page, not only from an open document. The home toolbar has a **沉浸 / Immersive** button.
