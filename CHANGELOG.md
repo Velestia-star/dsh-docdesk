@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1 — 2026-11-04
+
+- File drops now insert relative to the icon under the drag rather than forcing a slot swap; groups insert after the target in their original order, and dropping between two icons inserts at that gap. Target detection uses icon-overlap area, so it switches like desktop icons when the dragged icon is halfway over another.
+- Group drag previews follow more quickly, with shorter distance-based trailing delays.
+- The sidebar handle is now a hidden centered arrow that only appears on hover and points in the direction the sidebar will move.
+- Jump highlights hold for three seconds before a slower fade; new-file folder highlights use the same timing.
+- Folder context menus offer **Dissolve folder**, which moves direct files and child folders up one level and removes only the folder itself.
+- Path-only drop mode activates only when dragging upward out of the desktop; sideways drags keep normal movement.
+- Folder hover tooltips place the name and counts on separate rows below the folder, avoiding overlap.
+- A right-drag marquee no longer opens the bulk context menu automatically; right-clicking the selected group afterwards opens it.
+
 ## 0.3.0 — 2026-11-04
 
 - The last-read prompt is now a fixed document bar, so it stays visible while scrolling and while the bookmarks panel is open. The bookmark button moved into that bar, directly under the tab bar's Add files action, with an icon and a visible **书签 / Bookmarks** label.
