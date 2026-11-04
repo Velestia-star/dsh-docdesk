@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.4 — 2026-11-04
+
+- The white insertion caret now appears only in a real gap between two visible icons in the same row; it no longer shows in empty desktop space or at row edges.
+
 ## 0.3.3 — 2026-11-04
 
 - Replaced the dashed insertion slot with a white insertion caret between icons: a vertical white line with split, flared ends at the top and bottom, drawn at the actual gap where a file or group will be inserted.

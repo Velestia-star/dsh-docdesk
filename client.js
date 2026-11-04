@@ -3548,7 +3548,7 @@ body.dsd-immersive { overflow:hidden !important; }
                 'div',
                 { className: 'dsd-desktop-canvas', style: { height: `${canvasHeight}px` } },
                 marquee ? h('div', { className: 'dsd-marquee', style: { left: `${marquee.left}px`, top: `${marquee.top}px`, width: `${marquee.width}px`, height: `${marquee.height}px` } }) : null,
-                drag && dropSlot
+                drag && showInsertCaret
                   ? h(
                       'svg',
                       {
@@ -4087,6 +4087,21 @@ body.dsd-immersive { overflow:hidden !important; }
       const dragHintEntry = drag && dropFolder ? allEntries.find((entry) => entry.kind === 'folder' && entry.id === dropFolder) || null : null
       const dragHintGroup = drag ? dragRef.current?.group || [] : []
       const dragHintText = dragHintGroup.length === 1 && dragHintGroup[0].kind === 'folder' ? t('drag.hintFolder') : t('drag.hintGroup')
+      const draggedKeys = drag && drag.items ? new Set(Object.keys(drag.items)) : new Set()
+      const slotHasVisibleEntry = (slot) =>
+        Boolean(slot) && entries.some((entry) => {
+          if (draggedKeys.has(entryKey(entry))) return false
+          if (!Number.isFinite(entry.x) || !Number.isFinite(entry.y)) return false
+          const entrySlot = positionSlot(entry.x, entry.y, columns)
+          return Boolean(entrySlot && entrySlot.index === slot.index)
+        })
+      const showInsertCaret = Boolean(
+        drag &&
+        dropSlot &&
+        dropSlot.col > 0 &&
+        slotHasVisibleEntry(slotPosition(dropSlot.index - 1, columns)) &&
+        slotHasVisibleEntry(slotPosition(dropSlot.index, columns)),
+      )
 
       return h(
         'div',
