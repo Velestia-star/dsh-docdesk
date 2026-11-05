@@ -1,5 +1,100 @@
 # Changelog
 
+## 0.3.27 — 2026-11-05
+
+- Added **Highlight this line** to the document line context menu. The highlight is stored per file/block, stays until the same line is toggled off, and renders as a background tint only — no side marker or label.
+
+## 0.3.26 — 2026-11-05
+
+- Press the <kbd>~</kbd> / backquote key on the library home page to go back one folder level. It is ignored while typing or while a picker/dialog/menu is open.
+
+## 0.3.25 — 2026-11-05
+
+- Grid lines, the candidate-cell outline and the pointer point remain visible while dragging, but the R/C/reason/overlap text label has been removed.
+
+## 0.3.24 — 2026-11-05
+
+- The grid debug overlay (grid lines, pointer crosshair, candidate cell and reason/overlap label) is hidden by default. The hit-testing logic and the `window.__dshDocdeskGrid.getTargetCell` debug entry point remain available.
+
+## 0.3.23 — 2026-11-05
+
+- Added a pointer-first grid hit-test (`getTargetCell`) with floor-based cell math, 8px snap threshold, 0.14 hysteresis near boundaries, boundary clamping, and an icon-overlap fallback when the pointer leaves the grid. While dragging, the desktop now draws grid lines, the pointer point, the current candidate cell and a reason/overlap-ratio label for debugging.
+
+## 0.3.22 — 2026-11-05
+
+- Drop-target detection now follows the pointer, not the dragged icon's centre. After grabbing an icon off-centre, crossing more than halfway into an upper cell/folder selects that cell instead of falling through to the row below.
+
+## 0.3.21 — 2026-11-05
+
+- Files **and folders** moved into a folder now highlight when that folder is opened, and the highlight stays until the folder changes. Items released by dissolving or deleting a folder highlight the same way. Newly added files keep the separate one-time fade.
+
+## 0.3.20 — 2026-11-05
+
+- The folder hover card now chooses a free position around the folder (above, below, left, right) and checks every icon rectangle for collisions, so it no longer covers neighbouring file names. If the grid is packed it falls back to an empty corner.
+
+## 0.3.19 — 2026-11-05
+
+- Files moved into a folder or released by dissolving/deleting a folder no longer keep the selection or new-item highlight. Moving an existing file no longer marks it as fresh, and all highlight state is cleared when a move, dissolve or drop completes.
+
+## 0.3.18 — 2026-11-05
+
+- Multi-selection drops now always occupy consecutive slots, including at the right row edge. The group no longer skips past icons sitting at the edge; those icons are pushed into the following slots with the normal blocker chain.
+
+## 0.3.17 — 2026-11-05
+
+- Path-drop mode no longer exits halfway down the screen. Dragging downward keeps the path picker open until the pointer reaches the bottom edge; the left/right edges still exit immediately.
+
+## 0.3.16 — 2026-11-05
+
+- Path-drop mode can now be dismissed without releasing: dragging to the left/right edge or pulling down out of the path area returns to the normal desktop.
+- Inserting into an occupied gap now pushes blockers only as far as needed. A free slot behind absorbs the shift; when there is no gap, the blocking icons are carried along the chain instead of shifting the whole tail unconditionally.
+
+## 0.3.15 — 2026-11-05
+
+- The dragged icon now keeps the exact grab offset under the pointer instead of snapping its centre to the cursor, with no follow transition on the anchor.
+- Multi-select followers rush behind the anchor and fade out while dragging; they stay hidden until the drop, then immediately appear at their committed positions.
+
+## 0.3.14 — 2026-11-05
+
+- Inserting at an occupied gap now works with any number of following icons: the whole tail shifts backwards by the size of the dragged group, so the file/s can actually be placed into the caret gap instead of flying to the front or back. Dropping into an actual empty cell still moves only the dragged group and leaves the other icons untouched.
+
+## 0.3.13 — 2026-11-05
+
+- Dropping no longer reflows or compacts the other icons at all, including drops directly before/after another icon. The dragged group is placed into the nearest free slots and every other file stays where it is, leaving gaps intact.
+
+## 0.3.12 — 2026-11-05
+
+- **Dissolve folder** is now a danger-red menu item, matching **Delete folder**.
+- Dropping a file or group into an empty slot no longer compacts or shifts the icons after it: only the dragged group is placed into the empty slot, so gaps stay where they are. Dropping directly before/after another icon still makes room by inserting.
+
+## 0.3.11 — 2026-11-04
+
+- Folder context menus now have a **Delete folder** action below **Dissolve folder**. Delete removes the folder and its subfolder tree from the library, moves its documents back to the parent folder, and leaves files on disk untouched; it asks for confirmation and shows how many documents will move.
+
+## 0.3.10 — 2026-11-04
+
+- Dragging no longer reflows the other icons. A single-file drag leaves every other file exactly where it is; multi-selection drags move only the selected group (anchored behind the pointer), and the rest stay put until the drop is committed. This supersedes the live reflow added in 0.3.8.
+
+## 0.3.9 — 2026-11-04
+
+- Multi-item drags now queue the selected icons behind the pointer along the current drag direction, with short staggered follow timing; the held icon stays centred under the mouse. Group inserts use the same anchor-first order, while other icons still reflow live into the insertion gap.
+
+## 0.3.8 — 2026-11-04
+
+- Dragging now reflows the other icons live: as the pointer crosses an insertion point, non-dragged files and folders shift to make room with a quick 80 ms transition instead of staying static. Releasing commits the preview; cancelling or entering path/folder mode restores their positions.
+
+## 0.3.7 — 2026-11-04
+
+- Immersive mode keeps the same number of icons per row as the normal desktop, but spreads the cells horizontally to use the extra width. Exiting restores the exact normal positions; no reordering.
+
+## 0.3.6 — 2026-11-04
+
+- Entering and leaving immersive mode no longer reflows or repositions existing icons. Every valid slot is kept exactly as it was; only entries without a valid slot are placed into free slots.
+
+## 0.3.5 — 2026-11-04
+
+- Drop targets now follow the nearest grid cell instead of raw overlap area. A folder is targeted only when the dragged icon's centre is close to that folder's centre; between two folders, or when the icon is closer to a lower row, it becomes an insertion instead of jumping into a folder.
+
 ## 0.3.4 — 2026-11-04
 
 - The white insertion caret now appears only in a real gap between two visible icons in the same row; it no longer shows in empty desktop space or at row edges.

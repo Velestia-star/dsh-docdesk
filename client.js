@@ -3,7 +3,7 @@ window.__ModuleLoader__.load({
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    const { useCallback, useEffect, useMemo, useRef, useState } = React
+    const { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } = React
 
     const PANEL_ID = 'materials'
     const NS = 'dsh-docdesk'
@@ -13,6 +13,7 @@ window.__ModuleLoader__.load({
     const MERMAID_URL = '/api/dsh-docdesk/mermaid.js'
     const STORAGE_KEY = 'dsh-docdesk.library.v2'
     const BOOKMARK_KEY = 'dsh-docdesk.bookmarks.v1'
+    const HIGHLIGHT_KEY = 'dsh-docdesk.highlights.v1'
     const GUIDE_PATH = 'dsh-docdesk://guide'
     const GUIDE_SEEDED_KEY = 'dsh-docdesk.guide.v1'
     const GUIDE_MARKDOWN = `# 资料区使用说明
@@ -21,10 +22,10 @@ window.__ModuleLoader__.load({
 
 ## 添加与整理
 - 右上角「添加文件」打开选择器；文件只会加入资料区，不会移动磁盘文件。
-- 拖动图标换位置；拖到另一个文件上会在它前面或后面插入，拖到两图标之间也可插入。多选会按原顺序放到目标文件后。插入位置会显示白色分叉标线。
-- 按住右键在空白处拖动可以框选；拖动任意选中项会整组移动。
-- 新建文件夹后，可以把文件拖进去；右键菜单也能移动。右键文件夹可以「解散文件夹」。
-- 向上拖出桌面才会进入路径投放模式；把鼠标移到路径上松开，就能放进那个文件夹。
+- 拖到真正的空格时只移动拖动的文件；拖到图标之间的插入标线时，只把挡路的图标向后推：有空位就补空位，没空位就带着挡路图标一起移；多选整组始终占连续格子，不会跳过行尾的文件。
+- 按住右键在空白处拖动可以框选；拖动任意选中项会整组移动。拖动时图标保持抓取点与鼠标同步；整组拖动时其他选中项会靠近并隐藏在被拖图标后面，松开后出现在最终位置。
+- 新建文件夹后，可以把文件拖进去；右键菜单也能移动。右键文件夹可以「解散文件夹」或「删除文件夹」。
+- 向上拖出桌面才会进入路径投放模式；把鼠标移到路径上松开，就能放进那个文件夹。进入后拖到左右边缘，或一直向下拉到底部边缘会退出；没到底部不会退出。
 - 文件夹悬停 1 秒会显示里面有多少文件夹和文档。
 - 文件夹拖到文件夹上默认交换位置；停住后点右键才是放入。拿着文件拖到文件夹上松开是放入，右键是交换。
 - 顶部路径用箭头连接，最多显示两行；超过两行可以在路径区域滚动。
@@ -32,10 +33,11 @@ window.__ModuleLoader__.load({
 
 ## 阅读
 - 双击文档打开；顶部标签切换文件，「资料区」回主页。
-- 按 F 进入或退出沉浸阅读；Esc 也可以退出。
+- 按 F 进入或退出沉浸阅读；Esc 也可以退出。沉浸中每行图标数和普通模式相同，横向间距会拉大；退出后回到原来的位置。
 - 按 B 或在右侧书签按钮添加书签；书签面板可以跳转、改标题、写备注、删除。
 - 滚动时自动记录上次阅读位置；重新打开文档时顶部会显示「上次阅读」和「继续阅读」。
 - 正文里右键某一行也可以插入书签。
+- 同一个右键菜单里可以「高亮此行」，永久保留；再次右键可取消，只显示底色，不显示侧边标记。
 - 右侧滚动条左边的小横线是书签位置；鼠标移过去或滚轮经过会显示书签信息。
 - 点书签跳转时，目标行会保持高亮 3 秒，然后慢慢消失。
 
@@ -43,6 +45,7 @@ window.__ModuleLoader__.load({
 - B：添加书签
 - F：沉浸阅读开关
 - Esc：关闭面板 / 退出沉浸
+- ~：返回上一级文件夹
 - F2：重命名
 - Delete：把选中项移出资料区（不删文件）
 
@@ -57,6 +60,7 @@ window.__ModuleLoader__.load({
     const CELL_W = 96
     const CELL_H = 104
     const PAD = 10
+    const GRID_DEBUG_VISUAL = true
 
     /* ------------------------------------------------------------- locale */
 
@@ -137,6 +141,8 @@ window.__ModuleLoader__.load({
       'menu.parent': '返回上一级',
       'folder.tip': '{folders} 个文件夹 · {files} 个文档',
       'doc.addBookmark': '在此处插入书签',
+      'doc.highlightLine': '高亮此行',
+      'doc.unhighlightLine': '取消此行高亮',
       'pathDrop.title': '移动到文件夹',
       'pathDrop.hint': '移到路径上，松开鼠标放入',
       'pathDrop.current': '当前',
@@ -275,6 +281,8 @@ window.__ModuleLoader__.load({
       'menu.parent': 'Go up one level',
       'folder.tip': '{folders} folders · {files} documents',
       'doc.addBookmark': 'Insert bookmark at this line',
+      'doc.highlightLine': 'Highlight this line',
+      'doc.unhighlightLine': 'Remove line highlight',
       'pathDrop.title': 'Move to folder',
       'pathDrop.hint': 'Hover a path segment, then release to move',
       'pathDrop.current': 'Current',
@@ -370,6 +378,32 @@ window.__ModuleLoader__.load({
       return { version: 2, folders: {}, items: {}, openTabs: [], activeTab: 'home' }
     }
 
+    function loadLineHighlights() {
+      try {
+        const raw = localStorage.getItem(HIGHLIGHT_KEY)
+        if (!raw) return {}
+        const parsed = JSON.parse(raw)
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+        const result = {}
+        for (const [path, list] of Object.entries(parsed)) {
+          if (typeof path !== 'string' || !Array.isArray(list)) continue
+          const blocks = [...new Set(list.filter((value) => Number.isInteger(value) && value >= 0))].sort((left, right) => left - right)
+          if (blocks.length > 0) result[path] = blocks
+        }
+        return result
+      } catch {
+        return {}
+      }
+    }
+
+    function saveLineHighlights(highlights) {
+      try {
+        localStorage.setItem(HIGHLIGHT_KEY, JSON.stringify(highlights))
+      } catch {
+        /* storage may be unavailable */
+      }
+    }
+
     function loadLibrary() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY)
@@ -385,6 +419,7 @@ window.__ModuleLoader__.load({
             parentId: null,
             x: Number.isFinite(value.x) ? value.x : null,
             y: Number.isFinite(value.y) ? value.y : null,
+            highlight: Boolean(value.highlight),
           }
         }
         for (const [id, value] of Object.entries(parsed.folders || {})) {
@@ -403,6 +438,7 @@ window.__ModuleLoader__.load({
             y: Number.isFinite(value.y) ? value.y : null,
             addedAt: Number.isFinite(value.addedAt) ? value.addedAt : Date.now(),
             fresh: Boolean(value.fresh),
+            highlight: Boolean(value.highlight),
           }
         }
         const seen = new Set()
@@ -469,6 +505,7 @@ window.__ModuleLoader__.load({
                 y: null,
                 addedAt: Date.now(),
                 fresh: Boolean(folderId),
+                highlight: false,
               }
             }
             return { ...previous, items }
@@ -491,7 +528,7 @@ window.__ModuleLoader__.load({
             ...previous,
             folders: {
               ...previous.folders,
-              [id]: { id, name: String(name || t('folder.defaultName')).trim().slice(0, 80), parentId: parentId ?? null, x: null, y: null },
+              [id]: { id, name: String(name || t('folder.defaultName')).trim().slice(0, 80), parentId: parentId ?? null, x: null, y: null, highlight: false },
             },
           }))
           return id
@@ -507,7 +544,7 @@ window.__ModuleLoader__.load({
             for (const folderId of scope) delete folders[folderId]
             const items = { ...previous.items }
             for (const [path, item] of Object.entries(items)) {
-              if (item.folderId && scope.has(item.folderId)) items[path] = { ...item, folderId: parentId, x: null, y: null, fresh: false }
+              if (item.folderId && scope.has(item.folderId)) items[path] = { ...item, folderId: parentId, x: null, y: null, fresh: false, highlight: true }
             }
             return { ...previous, folders, items }
           })
@@ -522,11 +559,11 @@ window.__ModuleLoader__.load({
             const folders = { ...previous.folders }
             delete folders[id]
             for (const [folderId, child] of Object.entries(folders)) {
-              if ((child.parentId ?? null) === id) folders[folderId] = { ...child, parentId, x: null, y: null }
+              if ((child.parentId ?? null) === id) folders[folderId] = { ...child, parentId, x: null, y: null, highlight: true }
             }
             const items = { ...previous.items }
             for (const [path, item] of Object.entries(items)) {
-              if ((item.folderId ?? null) === id) items[path] = { ...item, folderId: parentId, x: null, y: null, fresh: false }
+              if ((item.folderId ?? null) === id) items[path] = { ...item, folderId: parentId, x: null, y: null, fresh: false, highlight: true }
             }
             return { ...previous, folders, items }
           })
@@ -553,11 +590,11 @@ window.__ModuleLoader__.load({
               if (!folder) return previous
               if (targetFolderId === id) return previous
               if (descendantFolders(previous.folders, id).has(targetFolderId)) return previous
-              return { ...previous, folders: { ...previous.folders, [id]: { ...folder, parentId: targetFolderId ?? null, x: null, y: null } } }
+              return { ...previous, folders: { ...previous.folders, [id]: { ...folder, parentId: targetFolderId ?? null, x: null, y: null, highlight: Boolean(targetFolderId) } } }
             }
             const item = previous.items[id]
             if (!item) return previous
-            return { ...previous, items: { ...previous.items, [id]: { ...item, folderId: targetFolderId ?? null, x: null, y: null, fresh: Boolean(targetFolderId) } } }
+            return { ...previous, items: { ...previous.items, [id]: { ...item, folderId: targetFolderId ?? null, x: null, y: null, fresh: false, highlight: Boolean(targetFolderId) } } }
           })
         },
         clearFresh(paths) {
@@ -572,6 +609,25 @@ window.__ModuleLoader__.load({
               }
             }
             return changed ? { ...previous, items } : previous
+          })
+        },
+        clearHighlights(entries) {
+          if (!Array.isArray(entries) || entries.length === 0) return
+          update((previous) => {
+            let changed = false
+            const items = { ...previous.items }
+            const folders = { ...previous.folders }
+            for (const entry of entries) {
+              if (!entry) continue
+              if (entry.kind === 'file' && items[entry.id] && items[entry.id].highlight) {
+                items[entry.id] = { ...items[entry.id], highlight: false }
+                changed = true
+              } else if (entry.kind === 'folder' && folders[entry.id] && folders[entry.id].highlight) {
+                folders[entry.id] = { ...folders[entry.id], highlight: false }
+                changed = true
+              }
+            }
+            return changed ? { ...previous, items, folders } : previous
           })
         },
         setPositions(updates) {
@@ -881,27 +937,145 @@ window.__ModuleLoader__.load({
       return Math.max(1, Math.floor((width - PAD * 2) / CELL_W))
     }
 
-    function slotPosition(index, columns) {
-      const col = index % columns
-      const row = Math.floor(index / columns)
-      return { index, col, row, x: PAD + col * CELL_W, y: PAD + row * CELL_H }
+    function getTargetCell(dragRect, pointer, grid) {
+      const rect = {
+        x: Number.isFinite(dragRect.x) ? dragRect.x : Number.isFinite(dragRect.left) ? dragRect.left : 0,
+        y: Number.isFinite(dragRect.y) ? dragRect.y : Number.isFinite(dragRect.top) ? dragRect.top : 0,
+        width: Number.isFinite(dragRect.width) ? dragRect.width : Math.max(0, (dragRect.right ?? 0) - (dragRect.left ?? 0)),
+        height: Number.isFinite(dragRect.height) ? dragRect.height : Math.max(0, (dragRect.bottom ?? 0) - (dragRect.top ?? 0)),
+      }
+      const boxArea = Math.max(1, rect.width * rect.height)
+      const originX = Number.isFinite(grid.gridOriginX) ? grid.gridOriginX : Number.isFinite(grid.originX) ? grid.originX : 0
+      const originY = Number.isFinite(grid.gridOriginY) ? grid.gridOriginY : Number.isFinite(grid.originY) ? grid.originY : 0
+      const cellW = Math.max(1, Number.isFinite(grid.cellW) ? grid.cellW : CELL_W)
+      const cellH = Math.max(1, Number.isFinite(grid.cellH) ? grid.cellH : CELL_H)
+      const columns = Math.max(1, Math.floor(grid.columns ?? grid.cols ?? 1))
+      const rows = Math.max(1, Math.floor(grid.rows ?? 1))
+      const snapThreshold = Math.max(0, Number.isFinite(grid.snapThreshold) ? grid.snapThreshold : 8)
+      const hysteresis = Math.max(0, Number.isFinite(grid.hysteresis) ? grid.hysteresis : 0.14)
+      const minOverlap = clamp(Number.isFinite(grid.minOverlap) ? grid.minOverlap : 0.35, 0, 1)
+      const current = grid.current && Number.isInteger(grid.current.row) && Number.isInteger(grid.current.col)
+        ? { row: clamp(grid.current.row, 0, rows - 1), col: clamp(grid.current.col, 0, columns - 1) }
+        : null
+      const cellRect = (row, col) => ({
+        x: originX + col * cellW,
+        y: originY + row * cellH,
+        width: cellW,
+        height: cellH,
+      })
+      const overlapRatio = (row, col) => {
+        const cell = cellRect(row, col)
+        const overlapX = Math.max(0, Math.min(rect.x + rect.width, cell.x + cell.width) - Math.max(rect.x, cell.x))
+        const overlapY = Math.max(0, Math.min(rect.y + rect.height, cell.y + cell.height) - Math.max(rect.y, cell.y))
+        return (overlapX * overlapY) / boxArea
+      }
+      const finish = (row, col, reason) => ({
+        row,
+        col,
+        reason,
+        overlapRatio: overlapRatio(row, col),
+        centerCell: {
+          x: originX + col * cellW + cellW / 2,
+          y: originY + row * cellH + cellH / 2,
+        },
+      })
+      const cellForPoint = (x, y) => ({
+        col: clamp(Math.floor((x - originX) / cellW), 0, columns - 1),
+        row: clamp(Math.floor((y - originY) / cellH), 0, rows - 1),
+      })
+      const inside = pointer.x >= originX &&
+        pointer.x < originX + columns * cellW &&
+        pointer.y >= originY &&
+        pointer.y < originY + rows * cellH
+      const raw = cellForPoint(pointer.x, pointer.y)
+      if (inside) {
+        let target = raw
+        let reason = current && current.row === raw.row && current.col === raw.col ? 'pointer-stable' : 'pointer'
+        if (current && (current.row !== raw.row || current.col !== raw.col)) {
+          const boundaryBlocked = (from, to, point, origin, size) => {
+            if (from === to) return false
+            const direction = Math.sign(to - from)
+            const boundary = direction > 0 ? origin + (from + 1) * size : origin + from * size
+            const beyond = direction > 0 ? point - boundary : boundary - point
+            return beyond < Math.max(snapThreshold, size * hysteresis)
+          }
+          const blockedX = boundaryBlocked(current.col, raw.col, pointer.x, originX, cellW)
+          const blockedY = boundaryBlocked(current.row, raw.row, pointer.y, originY, cellH)
+          if (blockedX || blockedY) {
+            target = current
+            reason = 'hysteresis'
+          }
+        }
+        return finish(target.row, target.col, reason)
+      }
+      let best = null
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < columns; col += 1) {
+          const ratio = overlapRatio(row, col)
+          if (!best || ratio > best.ratio) best = { row, col, ratio }
+        }
+      }
+      if (best && best.ratio > minOverlap) {
+        return finish(best.row, best.col, 'overlap')
+      }
+      if (current) return finish(current.row, current.col, 'outside-sticky')
+      return finish(raw.row, raw.col, 'clamped')
     }
 
-    function positionSlot(x, y, columns) {
+    if (typeof window !== 'undefined') {
+      window.__dshDocdeskGrid = { getTargetCell }
+    }
+
+    function placeFloatingTip(anchorRect, width = 240, height = 64) {
+      const pad = 8
+      const gap = 8
+      const items = [...document.querySelectorAll('.dsd-item')]
+        .map((element) => element.getBoundingClientRect())
+        .filter((rect) => rect.width > 0 && rect.height > 0)
+      const overlapArea = (left, top) => {
+        const right = left + width
+        const bottom = top + height
+        return items.reduce((total, rect) => {
+          const x = Math.max(0, Math.min(right, rect.right) - Math.max(left, rect.left))
+          const y = Math.max(0, Math.min(bottom, rect.bottom) - Math.max(top, rect.top))
+          return total + x * y
+        }, 0)
+      }
+      const candidates = [
+        { left: clamp(anchorRect.left, pad, window.innerWidth - width - pad), top: anchorRect.top - height - gap },
+        { left: clamp(anchorRect.left, pad, window.innerWidth - width - pad), top: anchorRect.bottom + gap },
+        { left: clamp(anchorRect.right + gap, pad, window.innerWidth - width - pad), top: anchorRect.top },
+        { left: clamp(anchorRect.left - width - gap, pad, window.innerWidth - width - pad), top: anchorRect.top },
+        { left: pad, top: window.innerHeight - height - pad },
+        { left: window.innerWidth - width - pad, top: window.innerHeight - height - pad },
+      ]
+      const inside = candidates.filter((candidate) => candidate.top >= pad && candidate.top + height <= window.innerHeight - pad)
+      const free = inside.find((candidate) => overlapArea(candidate.left, candidate.top) === 0)
+      if (free) return free
+      return inside.sort((left, right) => overlapArea(left.left, left.top) - overlapArea(right.left, right.top))[0] || { left: pad, top: pad }
+    }
+
+    function slotPosition(index, columns, cellW = CELL_W, cellH = CELL_H) {
+      const col = index % columns
+      const row = Math.floor(index / columns)
+      return { index, col, row, x: PAD + col * cellW, y: PAD + row * cellH }
+    }
+
+    function positionSlot(x, y, columns, cellW = CELL_W, cellH = CELL_H) {
       if (!Number.isFinite(x) || !Number.isFinite(y)) return null
-      const col = Math.round((x - PAD) / CELL_W)
-      const row = Math.round((y - PAD) / CELL_H)
+      const col = Math.round((x - PAD) / cellW)
+      const row = Math.round((y - PAD) / cellH)
       if (col < 0 || col >= columns || row < 0) return null
-      const snappedX = PAD + col * CELL_W
-      const snappedY = PAD + row * CELL_H
+      const snappedX = PAD + col * cellW
+      const snappedY = PAD + row * cellH
       if (Math.abs(x - snappedX) > 0.6 || Math.abs(y - snappedY) > 0.6) return null
       return { index: row * columns + col, col, row, x: snappedX, y: snappedY }
     }
 
-    function nearestSlot(x, y, columns, rows) {
-      const col = clamp(Math.round((x - PAD) / CELL_W), 0, columns - 1)
-      const row = clamp(Math.round((y - PAD) / CELL_H), 0, Math.max(0, rows - 1))
-      return slotPosition(row * columns + col, columns)
+    function nearestSlot(x, y, columns, rows, cellW = CELL_W, cellH = CELL_H) {
+      const col = clamp(Math.round((x - PAD) / cellW), 0, columns - 1)
+      const row = clamp(Math.round((y - PAD) / cellH), 0, Math.max(0, rows - 1))
+      return slotPosition(row * columns + col, columns, cellW, cellH)
     }
 
     function clampToCanvas(x, y, width, height) {
@@ -1021,6 +1195,8 @@ window.__ModuleLoader__.load({
           return paths(['M9 4v5H4', 'M15 4v5h5', 'M20 15h-5v5', 'M4 15h5v5'])
         case 'bookmark':
           return paths(['M6.5 4h11v17l-5.5-3.8L6.5 21z'])
+        case 'highlight':
+          return paths(['M6.2 18.6l-1.1 2.8 2.8-1.1L19 9.1 14.9 5z', 'M13.5 6.4l4.1 4.1'])
         case 'chevron':
           return paths(['M9 6l6 6-6 6'])
         default:
@@ -1593,7 +1769,7 @@ window.__ModuleLoader__.load({
     /* ---------------------------------------------------------------- css */
 
     const CSS = `
-.dsd-panel { position:relative; display:flex; flex-direction:column; height:100%; min-height:0; background:var(--dsw-alias-bg-base,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); font-family:inherit; }
+.dsd-panel { position:relative; display:flex; flex-direction:column; height:100%; max-height:100%; min-height:0; overflow:hidden; background:var(--dsw-alias-bg-base,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); font-family:inherit; }
 .dsd-panel[data-immersive="true"] { position:fixed; inset:0; width:100vw; height:100vh; max-width:none; min-width:0; margin:0; z-index:9999; border-radius:0; box-shadow:none; }
 .dsd-panel[data-immersive="true"] .dsd-doc-inner { max-width:980px; }
 body.dsd-immersive { overflow:hidden !important; }
@@ -1617,7 +1793,7 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-btn[data-active="true"] { color:var(--dsw-alias-state-business-primary,#2f6fed); border-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 38%, transparent); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 10%, transparent); }
 .dsd-btn[data-danger] { background:var(--dsw-alias-state-error-primary,#c62f45); border-color:transparent; color:#fff; font-weight:600; }
 .dsd-btn[data-danger]:hover:not(:disabled) { background:var(--dsw-alias-state-error-primary,#c62f45); filter:brightness(1.06); }
-.dsd-home { flex:1; min-height:0; display:flex; flex-direction:column; position:relative; }
+.dsd-home { flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; position:relative; }
 .dsd-toolbar { flex:none; display:flex; align-items:flex-start; gap:8px; padding:6px 12px 5px; }
 .dsd-toolbar-main { flex:1 1 auto; min-width:0; display:flex; align-items:flex-start; gap:7px; }
 .dsd-toolbar-actions { flex:none; display:flex; align-items:center; gap:7px; }
@@ -1636,7 +1812,8 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-search input:focus { border-color:var(--dsw-alias-state-business-primary,#2f6fed); }
 .dsd-search input::placeholder { color:var(--dsw-alias-label-secondary,#6b6b76); opacity:.8; }
 .dsd-desktop-wrap { flex:1; min-height:0; display:flex; padding:0 10px 10px; }
-.dsd-desktop { position:relative; flex:1; min-height:0; overflow:auto; border-radius:12px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); scrollbar-width:thin; scrollbar-gutter:stable; }
+.dsd-desktop { position:relative; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; box-sizing:border-box; border-radius:12px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); scrollbar-width:thin; }
+.dsd-desktop[data-scrollable="false"] { overflow-y:hidden; }
 .dsd-desktop-canvas { position:relative; width:100%; min-height:100%; background-color:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#f6f6f8) 62%, transparent); background-image:radial-gradient(circle, color-mix(in srgb, var(--dsw-alias-border-l2,#d0d0d8) 72%, transparent) 1px, transparent 1px); background-size:22px 22px; background-position:7px 7px; }
 .dsd-slot-ghost { position:absolute; width:88px; height:104px; border-radius:10px; border:1px dashed var(--dsw-alias-state-business-primary,#2f6fed); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 9%, transparent); pointer-events:none; z-index:1; }
 .dsd-insert-caret { position:absolute; width:24px; height:104px; color:#fff; pointer-events:none; z-index:24; filter:drop-shadow(0 0 2px rgba(0,0,0,.7)) drop-shadow(0 0 1px rgba(0,0,0,.5)); }
@@ -1648,8 +1825,14 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-item:hover { background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 6%, transparent); }
 .dsd-item:focus-visible { outline:2px solid var(--dsw-alias-state-business-primary,#2f6fed); outline-offset:1px; }
 .dsd-item[data-selected=true] { background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 13%, transparent); border-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 42%, transparent); }
+.dsd-item[data-move-highlight=true] { background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 18%, transparent); border-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 52%, transparent); box-shadow:0 0 0 2px color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 20%, transparent); }
 .dsd-item[data-dragging=true] { z-index:9; cursor:grabbing; opacity:.94; background:var(--dsw-alias-bg-layer-1,#fff); box-shadow:0 12px 26px rgba(0,0,0,.18); }
+.dsd-item[data-dragging=true][data-drag-follower=true] { opacity:0; pointer-events:none; }
 .dsd-item[data-new=true]::before { content:""; position:absolute; inset:-3px; border-radius:12px; pointer-events:none; animation:dsd-new-item 4.2s ease-out forwards; }
+.dsd-grid-debug-lines { position:absolute; pointer-events:none; z-index:1; opacity:.55; background-image:linear-gradient(to right, color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 35%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 35%, transparent) 1px, transparent 1px); }
+.dsd-grid-debug-cell { position:absolute; pointer-events:none; z-index:6; box-sizing:border-box; border:2px dashed color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 85%, transparent); border-radius:8px; background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 9%, transparent); }
+.dsd-grid-debug-line { position:absolute; pointer-events:none; z-index:11; background:var(--dsw-alias-state-business-primary,#2f6fed); opacity:.9; }
+.dsd-grid-debug-point { position:absolute; pointer-events:none; z-index:12; width:9px; height:9px; border:2px solid var(--dsw-alias-state-business-primary,#2f6fed); border-radius:50%; transform:translate(-50%,-50%); background:var(--dsw-alias-bg-layer-1,#fff); }
 @keyframes dsd-new-item { 0%,70% { background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 24%, transparent); box-shadow:0 0 0 2px color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 42%, transparent); opacity:1; } 100% { background:transparent; box-shadow:none; opacity:0; } }
 .dsd-folder-tip { position:fixed; z-index:55; max-width:220px; padding:7px 9px; border-radius:8px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); box-shadow:0 8px 24px rgba(0,0,0,.2); pointer-events:none; display:flex; flex-direction:column; gap:3px; }
 .dsd-folder-tip strong { display:block; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1701,8 +1884,9 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-bookmark-toggle-label { font-size:9.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-bookmark-toggle .dsd-bookmark-count { position:absolute; top:1px; right:1px; min-width:12px; height:12px; padding:0 3px; line-height:12px; font-size:8px; }
 .dsd-doc-body .dsd-line-flash { animation:dsd-line-flash 4.2s ease-out; border-radius:5px; }
+.dsd-doc-body .dsd-line-permanent { background-color:color-mix(in srgb, #f5c542 24%, transparent); border-radius:5px; }
 @keyframes dsd-line-flash { 0%,70% { background-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 22%, transparent); box-shadow:0 0 0 2px color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 26%, transparent); } 100% { background-color:transparent; box-shadow:none; } }
-.dsd-doc-scroll { flex:1; min-height:0; overflow:auto; scrollbar-width:thin; }
+.dsd-doc-scroll { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; }
 .dsd-doc-inner { max-width:880px; margin:0 auto; padding:18px 30px 64px; }
 .dsd-doc-pathbar { display:flex; align-items:center; gap:8px; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--dsw-alias-border-l1,#e4e4ea); color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-doc-pathbar > svg { flex:none; }
@@ -1996,11 +2180,14 @@ body.dsd-immersive { overflow:hidden !important; }
       const [bookmarksOpen, setBookmarksOpen] = useState(false)
       const [bookmarkEdit, setBookmarkEdit] = useState(null)
       const [bookmarkHover, setBookmarkHover] = useState(null)
+      const [lineHighlights, setLineHighlights] = useState(() => loadLineHighlights())
       const [docMenu, setDocMenu] = useState(null)
       const [folderTip, setFolderTip] = useState(null)
       const [newHighlights, setNewHighlights] = useState(() => new Set())
+      const [moveHighlights, setMoveHighlights] = useState(() => new Set())
       const [pathDrop, setPathDrop] = useState(false)
       const [pathDropHover, setPathDropHover] = useState(null)
+      const [gridDebug, setGridDebug] = useState(null)
       const [menu, setMenu] = useState(null)
       const [renaming, setRenaming] = useState(null)
       const [drag, setDrag] = useState(null)
@@ -2025,7 +2212,7 @@ body.dsd-immersive { overflow:hidden !important; }
       const flashTimer = useRef(0)
       const dragRef = useRef(null)
       const marqueeRef = useRef(null)
-      const pathDropRef = useRef({ active: false, folderId: undefined })
+      const pathDropRef = useRef({ active: false, folderId: undefined, suppressed: false })
       const suppressContextMenuRef = useRef(false)
       const selectedRef = useRef(selected)
       selectedRef.current = selected
@@ -2038,7 +2225,9 @@ body.dsd-immersive { overflow:hidden !important; }
       const pickerToken = useRef(0)
       const docCache = useRef(new Map())
       const docAbort = useRef(null)
-      const prevColumns = useRef(0)
+      const normalColumnsRef = useRef(0)
+      const gridMetricsRef = useRef(null)
+      const skipGridLayoutRef = useRef(false)
 
       const showToast = useCallback((text) => {
         window.clearTimeout(toastTimer.current)
@@ -2075,9 +2264,21 @@ body.dsd-immersive { overflow:hidden !important; }
           const height = element.clientHeight
           if (width > 0 && height > 0) setViewport((previous) => (previous.width === width && previous.height === height ? previous : { width, height }))
         }
+        // 只有真的需要滚动时才让浏览器画出滚动条：几像素的假溢出不再常驻一条空轨
+        const syncScrollable = () => {
+          const overflow = element.scrollHeight - element.clientHeight
+          const next = overflow > 4 ? 'true' : 'false'
+          if (element.dataset.scrollable !== next) element.dataset.scrollable = next
+        }
         measure()
-        const observer = new ResizeObserver(measure)
+        syncScrollable()
+        const observer = new ResizeObserver(() => {
+          measure()
+          syncScrollable()
+        })
         observer.observe(element)
+        const canvas = element.firstElementChild
+        if (canvas) observer.observe(canvas)
         return () => observer.disconnect()
       }, [library.activeTab])
 
@@ -2088,22 +2289,25 @@ body.dsd-immersive { overflow:hidden !important; }
       const allEntries = useMemo(() => {
         const folders = Object.values(library.folders)
           .filter((folder) => (folder.parentId ?? null) === currentFolder)
-          .map((folder) => ({ kind: 'folder', key: folder.id, id: folder.id, name: folder.name, x: folder.x, y: folder.y, count: countChildren(library, folder.id), addedAt: 0 }))
+          .map((folder) => ({ kind: 'folder', key: folder.id, id: folder.id, name: folder.name, x: folder.x, y: folder.y, count: countChildren(library, folder.id), addedAt: 0, highlight: Boolean(folder.highlight) }))
         const files = Object.values(library.items)
           .filter((item) => (item.folderId ?? null) === currentFolder)
-          .map((item) => ({ kind: 'file', key: item.path, id: item.path, name: item.name || basename(item.path), path: item.path, x: item.x, y: item.y, addedAt: item.addedAt || 0, fresh: Boolean(item.fresh) }))
+          .map((item) => ({ kind: 'file', key: item.path, id: item.path, name: item.name || basename(item.path), path: item.path, x: item.x, y: item.y, addedAt: item.addedAt || 0, fresh: Boolean(item.fresh), highlight: Boolean(item.highlight) }))
         return [...folders, ...files]
       }, [library, currentFolder])
 
-      const columns = Math.max(1, gridColumns(viewport.width))
+      const normalColumns = Math.max(1, normalColumnsRef.current || gridColumns(viewport.width))
+      const columns = immersive ? normalColumns : Math.max(1, gridColumns(viewport.width))
+      const cellW = immersive ? Math.max(CELL_W, (viewport.width - PAD * 2) / columns) : CELL_W
+      const cellH = CELL_H
       const maxRow = allEntries.reduce((max, entry) => {
-        const slot = positionSlot(entry.x, entry.y, columns)
+        const slot = positionSlot(entry.x, entry.y, columns, cellW, cellH)
         return slot ? Math.max(max, slot.row) : max
       }, 0)
       const rowCount = Math.max(1, Math.ceil(allEntries.length / columns), maxRow + 1)
-      const visibleRows = Math.max(1, Math.floor((viewport.height - PAD * 2) / CELL_H))
+      const visibleRows = Math.max(1, Math.floor((viewport.height - PAD * 2) / cellH))
       const targetRows = Math.max(rowCount, visibleRows)
-      const canvasHeight = Math.max(viewport.height, PAD * 2 + rowCount * CELL_H)
+      const canvasHeight = Math.max(viewport.height, PAD * 2 + rowCount * cellH)
 
       const entries = useMemo(() => {
         const query = search.trim().toLowerCase()
@@ -2130,6 +2334,7 @@ body.dsd-immersive { overflow:hidden !important; }
         lastHighlightFolderRef.current = currentFolder
         window.clearTimeout(newHighlightTimer.current)
         setNewHighlights(new Set())
+        setMoveHighlights(new Set())
       }, [currentFolder])
 
       useEffect(() => {
@@ -2143,6 +2348,17 @@ body.dsd-immersive { overflow:hidden !important; }
       }, [allEntries, currentFolder])
 
       useEffect(() => {
+        const highlighted = allEntries.filter((entry) => entry.highlight)
+        if (highlighted.length === 0) return
+        setMoveHighlights((previous) => {
+          const next = new Set(previous)
+          for (const entry of highlighted) next.add(entryKey(entry))
+          return next
+        })
+        store.clearHighlights(highlighted.map((entry) => ({ kind: entry.kind, id: entry.id })))
+      }, [allEntries])
+
+      useEffect(() => {
         window.clearTimeout(folderTipTimer.current)
         setFolderTip(null)
       }, [currentFolder])
@@ -2154,34 +2370,63 @@ body.dsd-immersive { overflow:hidden !important; }
       }, [drag, marquee])
 
       useEffect(() => {
+        if (!immersive && viewport.width >= ICON_W + PAD * 2) {
+          normalColumnsRef.current = Math.max(1, gridColumns(viewport.width))
+        }
+      }, [immersive, viewport.width])
+
+      useLayoutEffect(() => {
         if (viewport.width < ICON_W + PAD * 2) return
-        const previousColumns = prevColumns.current
-        const gridColumnsNow = Math.max(1, gridColumns(viewport.width))
-        const reflowAll = previousColumns > 0 && previousColumns !== gridColumnsNow
-        prevColumns.current = gridColumnsNow
-        const sortColumns = previousColumns > 0 ? previousColumns : gridColumnsNow
+        const nextMetrics = { immersive, columns, cellW, cellH }
+        const previous = gridMetricsRef.current
+        gridMetricsRef.current = nextMetrics
+        if (!previous) return
+        if (Math.abs(previous.cellW - cellW) < 0.5 && Math.abs(previous.cellH - cellH) < 0.5) return
+        const updates = []
+        const collect = (kind, id, x, y) => {
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return
+          const col = Math.round((x - PAD) / previous.cellW)
+          const row = Math.round((y - PAD) / previous.cellH)
+          const nextX = PAD + col * cellW
+          const nextY = PAD + row * cellH
+          if (nextX !== x || nextY !== y) updates.push({ kind, id, x: nextX, y: nextY })
+        }
+        for (const item of Object.values(library.items)) collect('file', item.path, item.x, item.y)
+        for (const folder of Object.values(library.folders)) collect('folder', folder.id, folder.x, folder.y)
+        if (updates.length === 0) return
+        skipGridLayoutRef.current = true
+        store.setPositions(updates)
+      }, [immersive, columns, cellW, cellH, viewport.width, library.items, library.folders])
+
+      useEffect(() => {
+        if (viewport.width < ICON_W + PAD * 2) return
+        if (skipGridLayoutRef.current) {
+          skipGridLayoutRef.current = false
+          return
+        }
         const ordered = allEntries.slice().sort((left, right) => {
-          const leftSlot = positionSlot(left.x, left.y, sortColumns)
-          const rightSlot = positionSlot(right.x, right.y, sortColumns)
+          const leftSlot = positionSlot(left.x, left.y, columns, cellW, cellH)
+          const rightSlot = positionSlot(right.x, right.y, columns, cellW, cellH)
           const leftIndex = leftSlot ? leftSlot.index : Number.MAX_SAFE_INTEGER
           const rightIndex = rightSlot ? rightSlot.index : Number.MAX_SAFE_INTEGER
           return leftIndex - rightIndex || (left.addedAt ?? 0) - (right.addedAt ?? 0) || left.name.localeCompare(right.name)
         })
         const used = new Set()
         const targets = new Map()
-        if (!reflowAll) {
-          for (const entry of ordered) {
-            const slot = positionSlot(entry.x, entry.y, gridColumnsNow)
-            if (!slot || used.has(slot.index)) continue
-            used.add(slot.index)
-            targets.set(entry.key, slot)
-          }
+        // Never reflow the whole desktop just because the panel became wider or
+        // narrower (immersive mode). Keep every valid existing slot untouched;
+        // only entries without a valid slot are placed into free slots.
+        for (const entry of ordered) {
+          const slot = positionSlot(entry.x, entry.y, columns, cellW, cellH)
+          if (!slot || used.has(slot.index)) continue
+          used.add(slot.index)
+          targets.set(entry.key, slot)
         }
         let cursor = 0
         for (const entry of ordered) {
           if (targets.has(entry.key)) continue
           while (used.has(cursor)) cursor += 1
-          const slot = slotPosition(cursor, gridColumnsNow)
+          const slot = slotPosition(cursor, columns, cellW, cellH)
           used.add(cursor)
           targets.set(entry.key, slot)
           cursor += 1
@@ -2193,7 +2438,7 @@ body.dsd-immersive { overflow:hidden !important; }
           if (entry.x !== target.x || entry.y !== target.y) updates.push({ kind: entry.kind, id: entry.id, x: target.x, y: target.y })
         }
         if (updates.length > 0) store.setPositions(updates)
-      }, [viewport, allEntries, currentFolder])
+      }, [viewport, allEntries, currentFolder, columns, cellW, cellH])
 
       const activePath = library.activeTab === 'home' ? null : library.activeTab
       const activeItem = activePath ? library.items[activePath] : null
@@ -2208,6 +2453,16 @@ body.dsd-immersive { overflow:hidden !important; }
         for (const entry of activeBookmarks) marks.push({ ...entry, kind: 'bookmark' })
         return marks.sort((left, right) => left.ratio - right.ratio)
       }, [lastPosition, activeBookmarks])
+
+      useEffect(() => {
+        if (!activePath || doc.status !== 'ready') return
+        const body = docScrollRef.current ? docScrollRef.current.querySelector('.dsd-doc-body') : null
+        if (!body) return
+        const selectedBlocks = new Set(lineHighlights[activePath] || [])
+        Array.from(body.children).forEach((block, index) => {
+          block.classList.toggle('dsd-line-permanent', selectedBlocks.has(index))
+        })
+      })
 
       const captureDocPosition = useCallback(() => {
         const scroll = docScrollRef.current
@@ -2329,7 +2584,7 @@ body.dsd-immersive { overflow:hidden !important; }
         setMenu(null)
         setDocMenu({
           x: clamp(event.clientX, 8, window.innerWidth - 240),
-          y: clamp(event.clientY, 8, window.innerHeight - 110),
+          y: clamp(event.clientY, 8, window.innerHeight - 150),
           position,
         })
       }, [activePath, doc.status, positionForBlock])
@@ -2432,6 +2687,9 @@ body.dsd-immersive { overflow:hidden !important; }
         if (immersiveRef.current) return
         const element = panelRef.current
         if (!element || element.getClientRects().length === 0) return
+        if (viewport.width >= ICON_W + PAD * 2) {
+          normalColumnsRef.current = Math.max(1, gridColumns(viewport.width))
+        }
         immersiveRef.current = true
         setImmersive(true)
         if (!scrollLockRef.current) {
@@ -2459,7 +2717,7 @@ body.dsd-immersive { overflow:hidden !important; }
             /* CSS immersive mode is the fallback */
           }
         }
-      }, [toggleHostSidebar])
+      }, [toggleHostSidebar, viewport.width])
 
       const toggleImmersive = useCallback(() => {
         if (immersiveRef.current) exitImmersive()
@@ -2656,9 +2914,12 @@ body.dsd-immersive { overflow:hidden !important; }
       const moveEntry = useCallback((entry, targetFolderId) => {
         store.move(entry.kind, entry.id, targetFolderId)
         setMenu(null)
+        setSelected(new Set())
+        window.clearTimeout(newHighlightTimer.current)
+        setNewHighlights(new Set())
       }, [])
 
-      const requestDeleteFolder = useCallback(
+      const requestDissolveFolder = useCallback(
         (folder) => {
           setMenu(null)
           setConfirmState({
@@ -2668,12 +2929,38 @@ body.dsd-immersive { overflow:hidden !important; }
             onConfirm: () => {
               store.dissolveFolder(folder.id)
               setSelected(new Set())
+              window.clearTimeout(newHighlightTimer.current)
+              setNewHighlights(new Set())
               setConfirmState(null)
               showToast(t('toast.folderDissolved'))
             },
           })
         },
-        [library.folders, library.items, showToast],
+        [showToast],
+      )
+
+      const requestDeleteFolder = useCallback(
+        (folder) => {
+          setMenu(null)
+          const scope = descendantFolders(library.folders, folder.id)
+          const count = Object.values(library.items).filter((item) => item.folderId && scope.has(item.folderId)).length
+          setConfirmState({
+            title: t('confirm.deleteTitle'),
+            message: count > 0 ? t('confirm.deleteWithFiles', { count }) : t('confirm.deleteEmpty'),
+            confirmLabel: t('confirm.delete'),
+            onConfirm: () => {
+              const parentId = folder.parentId ?? null
+              store.removeFolder(folder.id)
+              if (currentFolder && scope.has(currentFolder)) setCurrentFolder(parentId)
+              setSelected(new Set())
+              window.clearTimeout(newHighlightTimer.current)
+              setNewHighlights(new Set())
+              setConfirmState(null)
+              showToast(t('toast.folderDeleted'))
+            },
+          })
+        },
+        [library.folders, library.items, currentFolder, showToast],
       )
 
       const deleteSelection = useCallback(() => {
@@ -2717,6 +3004,8 @@ body.dsd-immersive { overflow:hidden !important; }
             moved += 1
           }
           setSelected(new Set())
+          window.clearTimeout(newHighlightTimer.current)
+          setNewHighlights(new Set())
           setMenu(null)
           if (moved === 0) showToast(t('toast.noMove'))
           return moved
@@ -2730,7 +3019,7 @@ body.dsd-immersive { overflow:hidden !important; }
           if (!target || !Array.isArray(group) || group.length === 0) return false
           if (group.some((item) => item.kind === 'folder' && (item.id === targetFolderId || descendantFolders(library.folders, item.id).has(targetFolderId)))) return false
           const slotIndex = (entry) => {
-            const slot = positionSlot(entry.x, entry.y, columns)
+            const slot = positionSlot(entry.x, entry.y, columns, cellW, cellH)
             return slot ? slot.index : null
           }
           const targetSlot = slotIndex(target)
@@ -2745,7 +3034,7 @@ body.dsd-immersive { overflow:hidden !important; }
           const updates = []
           let cursor = targetSlot
           const place = (entry) => {
-            const slot = slotPosition(cursor, columns)
+            const slot = slotPosition(cursor, columns, cellW, cellH)
             updates.push({ kind: entry.kind, id: entry.id, x: slot.x, y: slot.y })
             cursor += 1
           }
@@ -2762,39 +3051,61 @@ body.dsd-immersive { overflow:hidden !important; }
         (group, insertion) => {
           if (!Array.isArray(group) || group.length === 0 || !insertion) return false
           const slotIndex = (entry) => {
-            const slot = positionSlot(entry.x, entry.y, columns)
-            return slot ? slot.index : Number.MAX_SAFE_INTEGER
+            const slot = positionSlot(entry.x, entry.y, columns, cellW, cellH)
+            return slot ? slot.index : null
           }
-          const groupKeys = new Set(group.map((entry) => entry.key))
-          const remaining = allEntries.filter((entry) => !groupKeys.has(entryKey(entry))).slice().sort((left, right) => slotIndex(left) - slotIndex(right))
-          const groupOrdered = group.slice().sort((left, right) => slotIndex(left) - slotIndex(right))
           const target = insertion.targetKey ? allEntries.find((entry) => entryKey(entry) === insertion.targetKey) : null
-          let insertIndex
-          let startSlot
+          let startSlot = null
           if (target) {
-            const targetSlot = positionSlot(target.x, target.y, columns)
-            const targetRemainingIndex = remaining.findIndex((entry) => entryKey(entry) === insertion.targetKey)
-            if (!targetSlot || targetRemainingIndex < 0) return false
-            insertIndex = targetRemainingIndex + (insertion.side === 'after' ? 1 : 0)
-            startSlot = targetSlot.index + (insertion.side === 'after' ? 1 : 0)
-          } else {
-            if (!Number.isInteger(insertion.fallbackSlot)) return false
-            insertIndex = remaining.filter((entry) => slotIndex(entry) < insertion.fallbackSlot).length
-            startSlot = insertion.fallbackSlot
+            const targetSlot = positionSlot(target.x, target.y, columns, cellW, cellH)
+            if (targetSlot) startSlot = targetSlot.index + (insertion.side === 'after' ? 1 : 0)
           }
-          const tail = remaining.slice(insertIndex)
-          const ordered = [...groupOrdered, ...tail]
-          const updates = []
+          if (startSlot === null) {
+            const fallbackIndex = Number.isInteger(insertion.dropIndex)
+              ? insertion.dropIndex
+              : Number.isInteger(insertion.fallbackSlot)
+                ? insertion.fallbackSlot
+                : null
+            if (fallbackIndex === null) return false
+            startSlot = Math.max(0, fallbackIndex)
+          }
+          const groupKeys = new Set(group.map((item) => item.key))
+          const sortedGroup = group.slice().sort((left, right) => (slotIndex(left) ?? Number.MAX_SAFE_INTEGER) - (slotIndex(right) ?? Number.MAX_SAFE_INTEGER))
+          const anchorItem = insertion.anchorKey ? sortedGroup.find((item) => item.key === insertion.anchorKey) : null
+          const ordered = anchorItem ? [anchorItem, ...sortedGroup.filter((item) => item.key !== insertion.anchorKey)] : sortedGroup
+          const occupants = new Map()
+          for (const entry of allEntries) {
+            if (groupKeys.has(entryKey(entry))) continue
+            const index = slotIndex(entry)
+            if (index !== null) occupants.set(index, entry)
+          }
+          let pending = [...ordered]
+          let blocked = []
           let cursor = startSlot
-          for (const entry of ordered) {
-            const slot = slotPosition(cursor, columns)
-            updates.push({ kind: entry.kind, id: entry.id, x: slot.x, y: slot.y })
+          const updates = []
+          // The group always occupies consecutive slots. Any icon already in
+          // that run is queued behind the group; a free slot absorbs the shift,
+          // otherwise the blocking icons are carried along until there is room.
+          // The group therefore never skips over icons at a row edge.
+          while (pending.length > 0) {
+            const occupant = occupants.get(cursor)
+            if (occupant) {
+              occupants.delete(cursor)
+              blocked.push(occupant)
+            }
+            const item = pending.shift()
+            const slot = slotPosition(cursor, columns, cellW, cellH)
+            updates.push({ kind: item.kind, id: item.id, x: slot.x, y: slot.y })
+            if (pending.length === 0 && blocked.length > 0) {
+              pending = blocked
+              blocked = []
+            }
             cursor += 1
           }
           store.setPositions(updates)
           return true
         },
-        [allEntries, columns],
+        [allEntries, columns, cellW, cellH],
       )
 
       const onPointerDown = useCallback(
@@ -2832,7 +3143,7 @@ body.dsd-immersive { overflow:hidden !important; }
             group: groupEntries.map((candidate) => {
               const originX = Number.isFinite(candidate.x) ? candidate.x : PAD
               const originY = Number.isFinite(candidate.y) ? candidate.y : PAD
-              const delay = Math.min(60, Math.round((Math.abs(originX - anchorX) + Math.abs(originY - anchorY)) / CELL_W * 18))
+              const delay = Math.min(60, Math.round((Math.abs(originX - anchorX) + Math.abs(originY - anchorY)) / cellW * 18))
               return {
                 kind: candidate.kind,
                 id: candidate.id,
@@ -2844,9 +3155,13 @@ body.dsd-immersive { overflow:hidden !important; }
             }),
             startCanvasX,
             startCanvasY,
+            grabOffsetX: startCanvasX - anchorX,
+            grabOffsetY: startCanvasY - anchorY,
+            targetCell: null,
             moved: false,
           }
           setDropSlot(null)
+          setGridDebug(null)
           setMenu(null)
         },
         [entries],
@@ -2921,14 +3236,34 @@ body.dsd-immersive { overflow:hidden !important; }
           if (!current.moved && Math.hypot(moveDx, moveDy) < 4) return
           current.moved = true
           const frameRect = frame.getBoundingClientRect()
+          const overlay = document.querySelector('.dsd-path-drop')
+          const overlayRect = overlay ? overlay.getBoundingClientRect() : null
+          const panelRect = panelRef.current ? panelRef.current.getBoundingClientRect() : null
+          const bounds = overlayRect || panelRect
+          const insideDesktop = event.clientX > frameRect.left && event.clientX < frameRect.right && event.clientY > frameRect.top + 20 && event.clientY < frameRect.bottom
+          if (insideDesktop && !pathDropRef.current.active && !overlay) pathDropRef.current.suppressed = false
+          if (pathDropRef.current.active && bounds) {
+            const nearSide = event.clientX < bounds.left + 18 || event.clientX > bounds.right - 18
+            const tooLow = event.clientY > bounds.bottom - 28
+            if (nearSide || tooLow) {
+              pathDropRef.current.active = false
+              pathDropRef.current.folderId = undefined
+              pathDropRef.current.suppressed = true
+              setPathDrop(false)
+              setPathDropHover(null)
+            }
+          }
           const hit = document.elementFromPoint(event.clientX, event.clientY)
           const overPath = Boolean(hit && hit.closest && hit.closest('.dsd-path-drop'))
           const outsideUp = event.clientY < frameRect.top - 2
-          if (outsideUp || overPath) {
+          if (!pathDropRef.current.suppressed && (outsideUp || overPath)) {
             setPathDrop(true)
             pathDropRef.current.active = true
+            pathDropRef.current.suppressed = false
             setDropSlot(null)
             setDropFolder(null)
+            setGridDebug(null)
+            current.targetCell = null
             const segment = hit && hit.closest ? hit.closest('[data-path-drop-id]') : null
             const value = segment ? segment.getAttribute('data-path-drop-id') : null
             const folderId = value === null ? undefined : value === '__root__' ? null : value
@@ -2944,65 +3279,79 @@ body.dsd-immersive { overflow:hidden !important; }
           }
           const group = current.group
           const anchor = group.find((item) => item.key === current.anchorKey) || group[0]
-          const dx = canvasX - (anchor.originX + ICON_W / 2)
-          const dy = canvasY - (anchor.originY + ICON_CENTER_Y)
-          const minX = Math.min(...group.map((item) => item.originX))
-          const maxX = Math.max(...group.map((item) => item.originX + ICON_W))
-          const minY = Math.min(...group.map((item) => item.originY))
-          const maxY = Math.max(...group.map((item) => item.originY + ICON_H))
-          const minDx = PAD - minX
-          const maxDx = frame.clientWidth - PAD - maxX
-          const minDy = PAD - minY
-          const maxDy = canvasHeight - PAD - maxY
-          const clampedDx = maxDx >= minDx ? clamp(dx, minDx, maxDx) : 0
-          const clampedDy = maxDy >= minDy ? clamp(dy, minDy, maxDy) : 0
+          const grabOffsetX = Number.isFinite(current.grabOffsetX) ? current.grabOffsetX : 0
+          const grabOffsetY = Number.isFinite(current.grabOffsetY) ? current.grabOffsetY : 0
+          const anchorPoint = clampToCanvas(canvasX - grabOffsetX, canvasY - grabOffsetY, frame.clientWidth, canvasHeight)
+          const hideFollowers = group.length > 1
           const items = {}
-          for (const item of group) items[item.key] = { x: item.originX + clampedDx, y: item.originY + clampedDy }
           const trail = {}
-          for (const item of group) trail[item.key] = item.delay || 0
-          setDrag({ items, anchorKey: current.anchorKey, trail })
-          const anchorPos = items[anchor.key]
-          const anchorCenterX = anchorPos.x + ICON_W / 2
-          const anchorCenterY = anchorPos.y + ICON_CENTER_Y
-          const anchorRect = { left: anchorPos.x, top: anchorPos.y, right: anchorPos.x + ICON_W, bottom: anchorPos.y + ICON_H }
-          const groupKeys = new Set(group.map((item) => item.key))
-          let target = null
-          for (const entry of allEntries) {
-            if (groupKeys.has(entryKey(entry))) continue
-            if (!Number.isFinite(entry.x) || !Number.isFinite(entry.y)) continue
-            const overlapX = Math.max(0, Math.min(anchorRect.right, entry.x + ICON_W) - Math.max(anchorRect.left, entry.x))
-            const overlapY = Math.max(0, Math.min(anchorRect.bottom, entry.y + ICON_H) - Math.max(anchorRect.top, entry.y))
-            const overlap = overlapX * overlapY
-            if (overlap > 0 && (!target || overlap > target.overlap)) target = { entry, overlap }
+          items[anchor.key] = anchorPoint
+          trail[anchor.key] = 0
+          for (const item of group) {
+            if (item.key === anchor.key) continue
+            items[item.key] = anchorPoint
+            trail[item.key] = 0
           }
+          setDrag({ items, anchorKey: current.anchorKey, trail, hideFollowers })
+          const groupKeys = new Set(group.map((item) => item.key))
+          const gridOriginX = PAD - (cellW - ICON_W) / 2
+          const gridOriginY = PAD - (cellH - ICON_H) / 2
+          const targetInfo = getTargetCell(
+            { x: anchorPoint.x, y: anchorPoint.y, width: ICON_W, height: ICON_H },
+            { x: canvasX, y: canvasY },
+            {
+              gridOriginX,
+              gridOriginY,
+              cellW,
+              cellH,
+              columns,
+              rows: targetRows,
+              current: current.targetCell,
+              snapThreshold: 8,
+              hysteresis: 0.14,
+              minOverlap: 0.35,
+            },
+          )
+          current.targetCell = { row: targetInfo.row, col: targetInfo.col }
+          if (GRID_DEBUG_VISUAL) setGridDebug({ ...targetInfo, pointerX: canvasX, pointerY: canvasY })
+          const nearest = slotPosition(targetInfo.row * columns + targetInfo.col, columns, cellW, cellH)
+          const occupant = nearest
+            ? allEntries.find((entry) => {
+                if (groupKeys.has(entryKey(entry))) return false
+                if (!Number.isFinite(entry.x) || !Number.isFinite(entry.y)) return false
+                const slot = positionSlot(entry.x, entry.y, columns, cellW, cellH)
+                return Boolean(slot && slot.index === nearest.index)
+              }) || null
+            : null
+          const folderHit = Boolean(
+            occupant &&
+            occupant.kind === 'folder' &&
+            Math.abs(canvasX - (occupant.x + ICON_W / 2)) <= ICON_W * 0.31 &&
+            Math.abs(canvasY - (occupant.y + ICON_CENTER_Y)) <= ICON_H * 0.31,
+          )
           let folderId = null
-          if (target && target.entry.kind === 'folder') {
-            const forbidden = group.some((item) => item.kind === 'folder' && (item.id === target.entry.id || descendantFolders(library.folders, item.id).has(target.entry.id)))
-            if (!forbidden) folderId = target.entry.id
+          if (folderHit) {
+            const forbidden = group.some((item) => item.kind === 'folder' && (item.id === occupant.id || descendantFolders(library.folders, item.id).has(occupant.id)))
+            if (!forbidden) folderId = occupant.id
           }
           if (folderId) {
             current.insertion = null
             setDropSlot(null)
-            if (folderId !== dropFolder) setDropFolder(folderId)
+            setDropFolder(folderId)
           } else {
-            if (dropFolder) setDropFolder(null)
+            setDropFolder(null)
             let insertion
             let slot
-            if (target) {
-              const targetCenterX = target.entry.x + ICON_W / 2
-              const targetCenterY = target.entry.y + ICON_CENTER_Y
-              const sameRow = Math.abs(anchorCenterY - targetCenterY) < CELL_H / 2
-              const side = group.length > 1
-                ? 'after'
-                : sameRow
-                  ? (anchorCenterX < targetCenterX ? 'before' : 'after')
-                  : (anchorCenterY < targetCenterY ? 'before' : 'after')
-              const targetSlot = positionSlot(target.entry.x, target.entry.y, columns)
-              insertion = { targetKey: entryKey(target.entry), side, fallbackSlot: null }
-              slot = targetSlot ? slotPosition(targetSlot.index + (side === 'after' ? 1 : 0), columns) : nearestSlot(anchorCenterX, anchorCenterY, columns, targetRows)
+            if (occupant) {
+              const dx = canvasX - (occupant.x + ICON_W / 2)
+              const dy = canvasY - (occupant.y + ICON_CENTER_Y)
+              const side = Math.abs(dx) >= Math.abs(dy)
+                ? (dx < 0 ? 'before' : 'after')
+                : (dy < 0 ? 'before' : 'after')
+              insertion = { targetKey: entryKey(occupant), side, fallbackSlot: null, dropIndex: nearest ? nearest.index : 0, anchorKey: current.anchorKey }
+              slot = slotPosition(nearest.index + (side === 'after' ? 1 : 0), columns, cellW, cellH)
             } else {
-              const nearest = nearestSlot(anchorCenterX, anchorCenterY, columns, targetRows)
-              insertion = { targetKey: null, side: 'after', fallbackSlot: nearest ? nearest.index : 0 }
+              insertion = { targetKey: null, side: 'after', fallbackSlot: nearest ? nearest.index : 0, dropIndex: nearest ? nearest.index : 0, anchorKey: current.anchorKey }
               slot = nearest
             }
             current.insertion = insertion
@@ -3037,6 +3386,7 @@ body.dsd-immersive { overflow:hidden !important; }
           const frame = desktopRef.current
           dragRef.current = null
           setDropSlot(null)
+          setGridDebug(null)
           if (!current || !frame) {
             setDrag(null)
             setDropFolder(null)
@@ -3045,7 +3395,7 @@ body.dsd-immersive { overflow:hidden !important; }
           if (pathDropRef.current.active) {
             const targetFolderId = pathDropRef.current.folderId
             const activeGroup = current.group
-            pathDropRef.current = { active: false, folderId: undefined }
+            pathDropRef.current = { active: false, folderId: undefined, suppressed: false }
             setPathDrop(false)
             setPathDropHover(null)
             setDropSlot(null)
@@ -3086,14 +3436,14 @@ body.dsd-immersive { overflow:hidden !important; }
             } else {
               let insertion = current.insertion
               if (!insertion) {
-                const rect = frame.getBoundingClientRect()
-                const centerX = event.clientX - rect.left + frame.scrollLeft
-                const centerY = event.clientY - rect.top + frame.scrollTop
-                const nearest = nearestSlot(centerX, centerY, columns, targetRows)
-                insertion = { targetKey: null, side: 'after', fallbackSlot: nearest ? nearest.index : 0 }
+                const fallbackIndex = current.targetCell ? current.targetCell.row * columns + current.targetCell.col : 0
+                insertion = { targetKey: null, side: 'after', fallbackSlot: fallbackIndex, dropIndex: fallbackIndex, anchorKey: current.anchorKey }
               }
               insertGroupAt(group, insertion)
             }
+            setSelected(new Set())
+            window.clearTimeout(newHighlightTimer.current)
+            setNewHighlights(new Set())
           }
           setDrag(null)
           setDropFolder(null)
@@ -3126,6 +3476,14 @@ body.dsd-immersive { overflow:hidden !important; }
           if ((event.key === 'b' || event.key === 'B') && !event.repeat && !editing && panelVisible && activePath && doc.status === 'ready' && !picker.open && !renaming && !confirmState && !menu && !event.ctrlKey && !event.metaKey && !event.altKey) {
             event.preventDefault()
             addBookmark()
+            return
+          }
+          if ((event.code === 'Backquote' || event.key === '`' || event.key === '~') && !event.repeat && !editing && panelVisible && library.activeTab === 'home' && currentFolder && !picker.open && !renaming && !confirmState && !menu && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            const folder = library.folders[currentFolder]
+            event.preventDefault()
+            setCurrentFolder(folder ? folder.parentId ?? null : null)
+            setSelected(new Set())
+            setMenu(null)
             return
           }
           if (event.key === 'Escape') {
@@ -3286,10 +3644,11 @@ body.dsd-immersive { overflow:hidden !important; }
         const dragPosition = drag && drag.items ? drag.items[key] : null
         const isDragging = Boolean(dragPosition)
         const isDragAnchor = Boolean(isDragging && drag.anchorKey === key)
-        const dragTrail = isDragging && drag.trail ? drag.trail[key] || 0 : 0
+        const isDragFollower = Boolean(isDragging && drag.hideFollowers && !isDragAnchor)
         const x = dragPosition ? dragPosition.x : entry.x
         const y = dragPosition ? dragPosition.y : entry.y
         const isSelected = selected.has(key)
+        const isMoveHighlighted = moveHighlights.has(key)
         const isDropTarget = entry.kind === 'folder' && dropFolder === entry.id
         const isRenaming = renaming && renaming.kind === entry.kind && renaming.key === entry.id
         const folderAttrs = entry.kind === 'folder' ? { 'data-dsd-folder-id': entry.id } : {}
@@ -3304,12 +3663,16 @@ body.dsd-immersive { overflow:hidden !important; }
               left: `${Number.isFinite(x) ? x : -999}px`,
               top: `${Number.isFinite(y) ? y : -999}px`,
               transition: isDragging
-                ? `left ${isDragAnchor ? 60 : 120}ms cubic-bezier(.2,.8,.2,1) ${isDragAnchor ? 0 : dragTrail}ms, top ${isDragAnchor ? 60 : 120}ms cubic-bezier(.2,.8,.2,1) ${isDragAnchor ? 0 : dragTrail}ms`
+                ? isDragFollower
+                  ? `left 90ms cubic-bezier(.2,.8,.2,1), top 90ms cubic-bezier(.2,.8,.2,1), opacity 80ms ease-out`
+                  : 'none'
                 : undefined,
             },
             title: entry.kind === 'file' ? entry.path : entry.name,
             'data-selected': isSelected ? 'true' : 'false',
+            'data-move-highlight': isMoveHighlighted ? 'true' : 'false',
             'data-dragging': isDragging ? 'true' : 'false',
+            'data-drag-follower': isDragFollower ? 'true' : 'false',
             'data-drop': isDropTarget ? 'true' : 'false',
             'data-pending': !Number.isFinite(x) || !Number.isFinite(y) ? 'true' : 'false',
             'data-new': entry.kind === 'file' && newHighlights.has(entry.path) ? 'true' : 'false',
@@ -3325,7 +3688,10 @@ body.dsd-immersive { overflow:hidden !important; }
                   const tipX = event.clientX
                   const tipY = event.clientY
                   const tipRect = event.currentTarget.getBoundingClientRect()
-                  folderTipTimer.current = window.setTimeout(() => setFolderTip({ id: entry.id, x: tipX, y: tipY, entryLeft: tipRect.left, entryTop: tipRect.top, entryBottom: tipRect.bottom }), 1000)
+                  folderTipTimer.current = window.setTimeout(() => {
+                    const placed = placeFloatingTip(tipRect)
+                    setFolderTip({ id: entry.id, x: tipX, y: tipY, left: placed.left, top: placed.top, entryLeft: tipRect.left, entryTop: tipRect.top, entryBottom: tipRect.bottom })
+                  }, 1000)
                 }
               : undefined,
             onPointerLeave: entry.kind === 'folder'
@@ -3354,12 +3720,13 @@ body.dsd-immersive { overflow:hidden !important; }
                 dragRef.current = null
                 setDrag(null)
                 setDropFolder(null)
+                setGridDebug(null)
                 setDropSlot(null)
                 setSelected(new Set())
                 setMenu(null)
                 setPathDrop(false)
                 setPathDropHover(null)
-                pathDropRef.current = { active: false, folderId: undefined }
+                pathDropRef.current = { active: false, folderId: undefined, suppressed: false }
                 return
               }
               const currentSelected = selectedRef.current
@@ -3554,7 +3921,7 @@ body.dsd-immersive { overflow:hidden !important; }
                       {
                         className: 'dsd-insert-caret',
                         viewBox: '0 0 24 104',
-                        style: { left: `${Math.max(2, dropSlot.x - (CELL_W - ICON_W) / 2 - 12)}px`, top: `${dropSlot.y}px` },
+                        style: { left: `${Math.max(2, dropSlot.x - (cellW - ICON_W) / 2 - 12)}px`, top: `${dropSlot.y}px` },
                         'aria-hidden': 'true',
                       },
                       h('path', { d: 'M12 9V95', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' }),
@@ -3563,6 +3930,53 @@ body.dsd-immersive { overflow:hidden !important; }
                     )
                   : null,
                 entries.map(renderEntry),
+                GRID_DEBUG_VISUAL && drag && gridDebug
+                  ? h(
+                      React.Fragment,
+                      null,
+                      h('div', {
+                        className: 'dsd-grid-debug-lines',
+                        style: {
+                          left: `${debugGridOriginX}px`,
+                          top: `${debugGridOriginY}px`,
+                          width: `${columns * cellW}px`,
+                          height: `${targetRows * cellH}px`,
+                          backgroundSize: `${cellW}px ${cellH}px`,
+                        },
+                      }),
+                      h('div', {
+                        className: 'dsd-grid-debug-cell',
+                        style: {
+                          left: `${debugGridOriginX + gridDebug.col * cellW}px`,
+                          top: `${debugGridOriginY + gridDebug.row * cellH}px`,
+                          width: `${cellW}px`,
+                          height: `${cellH}px`,
+                        },
+                      }),
+                      h('div', {
+                        className: 'dsd-grid-debug-line',
+                        style: {
+                          left: `${gridDebug.pointerX - 9}px`,
+                          top: `${gridDebug.pointerY}px`,
+                          width: '18px',
+                          height: '1px',
+                        },
+                      }),
+                      h('div', {
+                        className: 'dsd-grid-debug-line',
+                        style: {
+                          left: `${gridDebug.pointerX}px`,
+                          top: `${gridDebug.pointerY - 9}px`,
+                          width: '1px',
+                          height: '18px',
+                        },
+                      }),
+                      h('div', {
+                        className: 'dsd-grid-debug-point',
+                        style: { left: `${gridDebug.pointerX}px`, top: `${gridDebug.pointerY}px` },
+                      }),
+                    )
+                  : null,
                 allEntries.length === 0
                   ? h(
                       'div',
@@ -4079,11 +4493,17 @@ body.dsd-immersive { overflow:hidden !important; }
           }
         : null
       const folderTipLeft = folderTip
-        ? clamp(Number.isFinite(folderTip.entryLeft) ? folderTip.entryLeft : folderTip.x + 12, 8, window.innerWidth - 240)
+        ? Number.isFinite(folderTip.left)
+          ? folderTip.left
+          : clamp(Number.isFinite(folderTip.entryLeft) ? folderTip.entryLeft : folderTip.x + 12, 8, window.innerWidth - 240)
         : 0
       const folderTipBelow = folderTip ? (Number.isFinite(folderTip.entryBottom) ? folderTip.entryBottom + 8 : folderTip.y + 18) : 0
       const folderTipAbove = folderTip ? (Number.isFinite(folderTip.entryTop) ? folderTip.entryTop - 68 : folderTip.y - 52) : 0
-      const folderTipTop = clamp(folderTipBelow > window.innerHeight - 76 ? folderTipAbove : folderTipBelow, 8, window.innerHeight - 76)
+      const folderTipTop = folderTip
+        ? Number.isFinite(folderTip.top)
+          ? folderTip.top
+          : clamp(folderTipBelow > window.innerHeight - 76 ? folderTipAbove : folderTipBelow, 8, window.innerHeight - 76)
+        : 0
       const dragHintEntry = drag && dropFolder ? allEntries.find((entry) => entry.kind === 'folder' && entry.id === dropFolder) || null : null
       const dragHintGroup = drag ? dragRef.current?.group || [] : []
       const dragHintText = dragHintGroup.length === 1 && dragHintGroup[0].kind === 'folder' ? t('drag.hintFolder') : t('drag.hintGroup')
@@ -4092,15 +4512,23 @@ body.dsd-immersive { overflow:hidden !important; }
         Boolean(slot) && entries.some((entry) => {
           if (draggedKeys.has(entryKey(entry))) return false
           if (!Number.isFinite(entry.x) || !Number.isFinite(entry.y)) return false
-          const entrySlot = positionSlot(entry.x, entry.y, columns)
+          const entrySlot = positionSlot(entry.x, entry.y, columns, cellW, cellH)
           return Boolean(entrySlot && entrySlot.index === slot.index)
         })
       const showInsertCaret = Boolean(
         drag &&
         dropSlot &&
         dropSlot.col > 0 &&
-        slotHasVisibleEntry(slotPosition(dropSlot.index - 1, columns)) &&
-        slotHasVisibleEntry(slotPosition(dropSlot.index, columns)),
+        slotHasVisibleEntry(slotPosition(dropSlot.index - 1, columns, cellW, cellH)) &&
+        slotHasVisibleEntry(slotPosition(dropSlot.index, columns, cellW, cellH)),
+      )
+      const debugGridOriginX = PAD - (cellW - ICON_W) / 2
+      const debugGridOriginY = PAD - (cellH - ICON_H) / 2
+      const docMenuHighlighted = Boolean(
+        activePath &&
+        docMenu &&
+        Number.isInteger(docMenu.position.blockIndex) &&
+        (lineHighlights[activePath] || []).includes(docMenu.position.blockIndex),
       )
 
       return h(
@@ -4157,6 +4585,32 @@ body.dsd-immersive { overflow:hidden !important; }
                 },
                 icon('bookmark', 14),
                 h('span', null, t('doc.addBookmark')),
+              ),
+              h(
+                'button',
+                {
+                  className: 'dsd-menu-item',
+                  type: 'button',
+                  role: 'menuitem',
+                  onClick: () => {
+                    const path = activePath
+                    const blockIndex = docMenu.position.blockIndex
+                    setLineHighlights((previous) => {
+                      const current = previous[path] || []
+                      const next = current.includes(blockIndex)
+                        ? current.filter((index) => index !== blockIndex)
+                        : [...current, blockIndex].sort((left, right) => left - right)
+                      const map = { ...previous }
+                      if (next.length > 0) map[path] = next
+                      else delete map[path]
+                      saveLineHighlights(map)
+                      return map
+                    })
+                    setDocMenu(null)
+                  },
+                },
+                icon('highlight', 14),
+                h('span', null, docMenuHighlighted ? t('doc.unhighlightLine') : t('doc.highlightLine')),
               ),
             )
           : null,
@@ -4257,10 +4711,20 @@ body.dsd-immersive { overflow:hidden !important; }
                     h('span', null, t('action.remove')),
                   )
                 : h(
-                    'button',
-                    { className: 'dsd-menu-item', type: 'button', role: 'menuitem', 'data-danger': true, onClick: () => requestDeleteFolder(contextEntry) },
-                    icon('folder', 14),
-                    h('span', null, t('action.dissolveFolder')),
+                    React.Fragment,
+                    null,
+                    h(
+                      'button',
+                      { className: 'dsd-menu-item', type: 'button', role: 'menuitem', 'data-danger': true, onClick: () => requestDissolveFolder(contextEntry) },
+                      icon('folder', 14),
+                      h('span', null, t('action.dissolveFolder')),
+                    ),
+                    h(
+                      'button',
+                      { className: 'dsd-menu-item', type: 'button', role: 'menuitem', 'data-danger': true, onClick: () => requestDeleteFolder(contextEntry) },
+                      icon('trash', 14),
+                      h('span', null, t('action.deleteFolder')),
+                    ),
                   ),
             )
           : null,
