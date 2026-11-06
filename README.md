@@ -49,6 +49,26 @@ dsh plugin --profile <your-profile> add https://github.com/wei238982377/dsh-docd
 
 In DSH Desktop you can also open **Plugins → Add** and paste the repository URL. The bundle is a source package: the root `package.json` declares `dsh.bundle` and `cordis.patch.yml`.
 
+### If the install stalls on a registry warning
+
+Warnings such as `GET https://mirrors.cloud.tencent.com/npm/... error (UND_ERR_DESTROYED)` come from pnpm resolving **other plugins already in the profile**, not from this package: `dsh-docdesk` has no npm dependencies. The retries can succeed; if they do not, point the profile at a reachable registry and retry.
+
+```sh
+# either set it for this shell/profile...
+dsh plugin --profile <your-profile> add https://github.com/wei238982377/dsh-docdesk --registry=https://registry.npmmirror.com
+# ...or set the default used by the desktop plugin manager:
+npm config set registry https://registry.npmmirror.com
+```
+
+`https://registry.npmjs.org` works as a fallback. If an earlier attempt was interrupted, remove the half-installed entry first:
+
+```sh
+dsh plugin --profile <your-profile> remove dsh-docdesk
+dsh plugin --profile <your-profile> add https://github.com/wei238982377/dsh-docdesk --registry=https://registry.npmmirror.com
+```
+
+If `npm` is unavailable, put `registry=https://registry.npmmirror.com` in `%USERPROFILE%\.npmrc` (Windows) or `~/.npmrc`. The same mirror choice is available in the DSH Plugin Hub settings.
+
 After installation, refresh the browser tab once so the client plugin loads.
 
 ## Use

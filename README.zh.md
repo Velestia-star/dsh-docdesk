@@ -49,6 +49,26 @@ dsh plugin --profile <你的 profile> add https://github.com/wei238982377/dsh-do
 
 在 DSH Desktop 里也可以打开 **插件 → 添加**，粘贴仓库地址。这个 bundle 是源码包：根目录的 `package.json` 声明了 `dsh.bundle` 和 `cordis.patch.yml`。
 
+### 安装卡在 npm 镜像警告时
+
+出现 `GET https://mirrors.cloud.tencent.com/npm/... error (UND_ERR_DESTROYED)` 这类警告，是 pnpm 在解析 **当前 profile 里已有的其他插件**，不是这个插件在拉依赖：`dsh-docdesk` 本身没有 npm 依赖。多等几次重试有时会自己通过；如果一直失败，把 registry 换到可访问的镜像再重试。
+
+```sh
+# 只给这一次安装换源
+dsh plugin --profile <你的 profile> add https://github.com/wei238982377/dsh-docdesk --registry=https://registry.npmmirror.com
+# 或设置桌面插件管理器的默认源
+npm config set registry https://registry.npmmirror.com
+```
+
+也可以改用 `https://registry.npmjs.org`。如果上一次装到一半失败，先移除再装：
+
+```sh
+dsh plugin --profile <你的 profile> remove dsh-docdesk
+dsh plugin --profile <你的 profile> add https://github.com/wei238982377/dsh-docdesk --registry=https://registry.npmmirror.com
+```
+
+如果没有 `npm` 命令，可以在 `%USERPROFILE%\.npmrc`（Windows）或 `~/.npmrc` 里写 `registry=https://registry.npmmirror.com`。DSH Plugin Hub 的设置里也有同样的镜像选项。
+
 装好后刷新一次浏览器标签页，客户端插件才会加载。
 
 ## 使用
