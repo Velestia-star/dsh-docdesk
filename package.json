@@ -39,12 +39,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wei238982377/dsh-docdesk.git"
+    "url": "git+https://github.com/Velestia-star/dsh-docdesk.git"
   },
   "bugs": {
-    "url": "https://github.com/wei238982377/dsh-docdesk/issues"
+    "url": "https://github.com/Velestia-star/dsh-docdesk/issues"
   },
-  "homepage": "https://github.com/wei238982377/dsh-docdesk#readme",
+  "homepage": "https://github.com/Velestia-star/dsh-docdesk#readme",
   "dsh": {
     "engines": {
       "dsh": ">=0.2.1-rc.3"

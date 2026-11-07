@@ -44,7 +44,7 @@ DSH 的智能体会把笔记、方案、调研和报告写成 `.md` 文件。文
 ### 从 GitHub 安装
 
 ```sh
-dsh plugin --profile <你的 profile> add https://github.com/wei238982377/dsh-docdesk
+dsh plugin --profile <你的 profile> add https://github.com/Velestia-star/dsh-docdesk
 ```
 
 在 DSH Desktop 里也可以打开 **插件 → 添加**，粘贴仓库地址。这个 bundle 是源码包：根目录的 `package.json` 声明了 `dsh.bundle` 和 `cordis.patch.yml`。
@@ -55,7 +55,7 @@ dsh plugin --profile <你的 profile> add https://github.com/wei238982377/dsh-do
 
 ```sh
 # 只给这一次安装换源
-dsh plugin --profile <你的 profile> add https://github.com/wei238982377/dsh-docdesk --registry=https://registry.npmmirror.com
+dsh plugin --profile <你的 profile> add https://github.com/Velestia-star/dsh-docdesk --registry=https://registry.npmmirror.com
 # 或设置桌面插件管理器的默认源
 npm config set registry https://registry.npmmirror.com
 ```
@@ -64,7 +64,7 @@ npm config set registry https://registry.npmmirror.com
 
 ```sh
 dsh plugin --profile <你的 profile> remove dsh-docdesk
-dsh plugin --profile <你的 profile> add https://github.com/wei238982377/dsh-docdesk --registry=https://registry.npmmirror.com
+dsh plugin --profile <你的 profile> add https://github.com/Velestia-star/dsh-docdesk --registry=https://registry.npmmirror.com
 ```
 
 如果没有 `npm` 命令，可以在 `%USERPROFILE%\.npmrc`（Windows）或 `~/.npmrc` 里写 `registry=https://registry.npmmirror.com`。DSH Plugin Hub 的设置里也有同样的镜像选项。

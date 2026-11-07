@@ -44,7 +44,7 @@ Once the entry is merged into [awesome-dsh-plugin](https://github.com/awesome-ds
 ### From GitHub
 
 ```sh
-dsh plugin --profile <your-profile> add https://github.com/wei238982377/dsh-docdesk
+dsh plugin --profile <your-profile> add https://github.com/Velestia-star/dsh-docdesk
 ```
 
 In DSH Desktop you can also open **Plugins → Add** and paste the repository URL. The bundle is a source package: the root `package.json` declares `dsh.bundle` and `cordis.patch.yml`.
@@ -55,7 +55,7 @@ Warnings such as `GET https://mirrors.cloud.tencent.com/npm/... error (UND_ERR_D
 
 ```sh
 # either set it for this shell/profile...
-dsh plugin --profile <your-profile> add https://github.com/wei238982377/dsh-docdesk --registry=https://registry.npmmirror.com
+dsh plugin --profile <your-profile> add https://github.com/Velestia-star/dsh-docdesk --registry=https://registry.npmmirror.com
 # ...or set the default used by the desktop plugin manager:
 npm config set registry https://registry.npmmirror.com
 ```
@@ -64,7 +64,7 @@ npm config set registry https://registry.npmmirror.com
 
 ```sh
 dsh plugin --profile <your-profile> remove dsh-docdesk
-dsh plugin --profile <your-profile> add https://github.com/wei238982377/dsh-docdesk --registry=https://registry.npmmirror.com
+dsh plugin --profile <your-profile> add https://github.com/Velestia-star/dsh-docdesk --registry=https://registry.npmmirror.com
 ```
 
 If `npm` is unavailable, put `registry=https://registry.npmmirror.com` in `%USERPROFILE%\.npmrc` (Windows) or `~/.npmrc`. The same mirror choice is available in the DSH Plugin Hub settings.
