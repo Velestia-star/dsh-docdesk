@@ -37,6 +37,8 @@ DSH 的智能体会把笔记、方案、调研和报告写成 `.md` 文件。文
 
 ## 安装
 
+要求 **DSH 0.2.2-rc.1 或更新版本**。
+
 ### 从插件市场安装
 
 等条目合并进 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 后，在 Harness 里打开 **插件 → 发现**，搜索 **资料区** 或 **Materials** 安装即可。市场直接从本仓库安装，npm 发布是可选的。

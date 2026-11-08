@@ -37,6 +37,8 @@ The plugin never moves, renames or deletes anything on disk.
 
 ## Install
 
+Requires **DSH 0.2.2-rc.1 or newer**.
+
 ### From the plugin market
 
 Once the entry is merged into [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin), open **Plugins → Discover**, search for **资料区** or **Materials**, and install it. The market installs from this repository; npm publication is optional.

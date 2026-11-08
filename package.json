@@ -1,6 +1,6 @@
 {
   "name": "dsh-docdesk",
-  "version": "0.3.27",
+  "version": "0.3.28",
   "description": "An add-only Markdown library for DeepSeek Harness: pick documents from workspaces, place icons on a fixed non-overlapping desktop grid, marquee-select and move groups with trailing drags, swap folders and drop onto a breadcrumb path, render GFM tables and Mermaid/chart code blocks, read full-screen with browser-style tabs and an immersive mode, and bookmark reading positions with a persistent last-read bar, scrollbar marks and 3-second line highlights. · DSH 资料区：主动挑选 Markdown 文档，在固定网格桌面内对齐摆放，支持右键框选整组拖动、文件夹交换、路径投放、表格与 Mermaid/图表代码块渲染、沉浸式全屏阅读、标签页切换，以及带上次阅读提示、滚动条书签标记和跳转高亮的正文书签。",
   "type": "module",
   "main": "index.js",
@@ -47,7 +47,7 @@
   "homepage": "https://github.com/Velestia-star/dsh-docdesk#readme",
   "dsh": {
     "engines": {
-      "dsh": ">=0.2.1-rc.3"
+      "dsh": ">=0.2.2-rc.1"
     },
     "bundle": {
       "patch": "./cordis.patch.yml"

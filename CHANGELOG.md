@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.28 — 2026-11-08
+
+- Raised the declared DSH compatibility floor to `>=0.2.2-rc.1`. Checked the plugin against DSH 0.2.2-rc.1 (Cordis 4.1): it declares no host peer dependencies, and the host/client entry points it uses are unchanged, so no code migration was required.
+
 ## 0.3.27 — 2026-11-05
 
 - Added **Highlight this line** to the document line context menu. The highlight is stored per file/block, stays until the same line is toggled off, and renders as a background tint only — no side marker or label.
