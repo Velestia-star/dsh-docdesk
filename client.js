@@ -10,7 +10,6 @@ window.__ModuleLoader__.load({
     const API_LIST = '/api/dsh-docdesk/list'
     const API_READ = '/api/dsh-docdesk/read'
     const API_FILE = '/api/dsh-docdesk/file'
-    const API_REVEAL = '/api/dsh-docdesk/reveal'
     const API_RESOLVE = '/api/dsh-docdesk/resolve'
     const MERMAID_URL = '/api/dsh-docdesk/mermaid.js'
     const STORAGE_KEY = 'dsh-docdesk.library.v2'
@@ -44,7 +43,7 @@ window.__ModuleLoader__.load({
 - 双击文件打开；顶部标签切换文件，「资料区」回主页。
 - Markdown 照常渲染表格、图表和 Mermaid；纯文本与代码用等宽滚动阅读器打开；图片、PDF、音频、视频各用自己的阅读界面。
 - 图片按住 Shift 滚轮可以平滑缩放；点图片进入全屏（沉浸模式下铺满屏幕，普通模式铺满面板），再点图片或按 Esc 退出。
-- 路径栏按钮下面带小字：定位、复制、重读、打开、下载、沉浸。点「定位」会在系统文件管理器中显示当前文件；网页和 PDF 只能在沙箱或浏览器阅读器里看，需要保存时点下载。
+- 路径栏按钮下面带小字：复制、重读、打开、下载、沉浸；网页和 PDF 只能在沙箱或浏览器阅读器里看，需要保存时点下载。
 - 按 F 进入或退出沉浸阅读；Esc 也可以退出。沉浸中每行图标数和普通模式相同，横向间距会拉大；退出后回到原来的位置。
 - 按 B 或在右侧书签按钮添加书签（只对 Markdown）；书签面板可以跳转、改标题、写备注、删除。
 - 滚动时自动记录上次阅读位置；重新打开 Markdown 或纯文本时顶部会显示「上次阅读」和「继续阅读」。
@@ -168,6 +167,7 @@ window.__ModuleLoader__.load({
       'doc.download': '下载',
       'doc.htmlHint': '网页在沙箱中打开：脚本可以运行，但 fetch/XHR 请求、表单提交和跳出阅读器都被禁止。',
       'doc.pdfHint': '使用浏览器内置的 PDF 阅读器；需要保存时可以点下载。',
+      'doc.externalTag': '外部',
       'doc.imageHint': 'Shift+滚轮缩放；点图片进入全屏，再点或按 Esc 退出。',
       'doc.imageEnterFull': '全屏查看',
       'doc.imageFull': '图片全屏',
@@ -175,14 +175,9 @@ window.__ModuleLoader__.load({
       'doc.imageFullHint': 'Shift+滚轮缩放 · 点击图片或按 Esc 退出',
       'bar.copy': '复制',
       'bar.reload': '重读',
-      'bar.reveal': '定位',
       'bar.open': '打开',
       'bar.download': '下载',
       'bar.immersive': '沉浸',
-      'doc.revealTitle': '在文件管理器中显示所在位置',
-      'toast.revealed': '已在文件管理器中显示',
-      'toast.revealFailed': '无法在文件管理器中显示：可能不是本机路径',
-      'toast.revealFailedDetail': '定位失败：{reason}',
       'doc.audioHint': '音频文件，可以直接播放。',
       'doc.videoHint': '视频文件，可以直接播放。',
       'doc.unsupported': '这个格式无法内嵌预览，可以在新标签打开或下载。',
@@ -344,6 +339,7 @@ window.__ModuleLoader__.load({
       'doc.download': 'Download',
       'doc.htmlHint': 'This page opens in a sandbox: scripts run, while fetch/XHR requests, form submits and escaping the reader are blocked.',
       'doc.pdfHint': 'Rendered by the browser’s built-in PDF viewer; use Download to save a copy.',
+      'doc.externalTag': 'External',
       'doc.imageHint': 'Shift+wheel zooms; click the image for full screen, click again or press Esc to exit.',
       'doc.imageEnterFull': 'Full screen',
       'doc.imageFull': 'Image full screen',
@@ -351,14 +347,9 @@ window.__ModuleLoader__.load({
       'doc.imageFullHint': 'Shift+wheel zooms · click the image or press Esc to exit',
       'bar.copy': 'Copy',
       'bar.reload': 'Reload',
-      'bar.reveal': 'Reveal',
       'bar.open': 'Open',
       'bar.download': 'Download',
       'bar.immersive': 'Full',
-      'doc.revealTitle': 'Show in file manager',
-      'toast.revealed': 'Revealed in the file manager',
-      'toast.revealFailed': 'Could not reveal the file: it may not be a local path',
-      'toast.revealFailedDetail': 'Could not reveal the file: {reason}',
       'doc.audioHint': 'Audio file, ready to play.',
       'doc.videoHint': 'Video file, ready to play.',
       'doc.unsupported': 'This format cannot be previewed inline. Open it in a new tab or download it.',
@@ -1460,12 +1451,6 @@ window.__ModuleLoader__.load({
             h('path', { key: 'b', d: 'M20 4l-9 9' }),
             h('path', { key: 'c', d: 'M18 14.4V18a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 18V7.8A1.8 1.8 0 0 1 5.8 6H10' }),
           ])
-        case 'reveal':
-          return h('svg', base, [
-            h('path', { key: 'f', d: 'M3.4 6.8a1.6 1.6 0 0 1 1.6-1.6h4.1l1.8 2.1H19a1.6 1.6 0 0 1 1.6 1.6v9.2a1.6 1.6 0 0 1-1.6 1.6H5a1.6 1.6 0 0 1-1.6-1.6z' }),
-            h('circle', { key: 'c', cx: 12, cy: 14, r: 2 }),
-            h('path', { key: 'l', d: 'M13.4 15.4l1.6 1.6' }),
-          ])
         case 'download':
           return paths(['M12 4v10', 'M8 10.4l4 4 4-4', 'M5 19h14'])
         default:
@@ -2278,16 +2263,23 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-panel[data-immersive="true"] .dsd-doc-inner[data-wide=true] { max-width:none; }
 .dsd-doc-text { margin:0; padding:13px 15px; border-radius:10px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#f0f0f4); overflow:auto; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px; line-height:1.65; white-space:pre-wrap; word-break:break-word; tab-size:2; }
 .dsd-media { display:flex; flex-direction:column; align-items:center; gap:10px; padding:4px 0 20px; }
-.dsd-media[data-zoom=true] { align-items:flex-start; }
-.dsd-media-image { display:block; max-width:100%; max-height:calc(100vh - 300px); object-fit:contain; border-radius:10px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:repeating-conic-gradient(color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 4%, transparent) 0% 25%, transparent 0% 50%) 50%/18px 18px; cursor:zoom-in; }
-.dsd-media[data-zoom=true] .dsd-media-image { cursor:zoom-out; }
+.dsd-image-head { flex:none; display:flex; align-items:center; gap:9px; padding:7px 12px; border-bottom:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-1,#f6f6f8); }
+.dsd-image-head > svg { flex:none; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-image-head-text { flex:1; min-width:0; display:flex; align-items:baseline; gap:8px; }
+.dsd-image-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px; font-weight:600; }
+.dsd-image-meta { flex:none; font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); white-space:nowrap; }
+.dsd-image-actions { flex:none; display:flex; align-items:center; gap:4px; }
+.dsd-image-actions .dsd-btn { flex-direction:column; gap:0; height:auto; min-height:34px; padding:2px 6px; }
+.dsd-image-stage { position:relative; flex:1; min-height:0; display:flex; align-items:center; justify-content:center; overflow:auto; padding:14px 16px 38px; background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#f6f6f8) 42%, transparent); }
+.dsd-image-stage[data-zoom=true] { align-items:flex-start; justify-content:flex-start; }
+.dsd-image-main { display:block; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; cursor:zoom-in; }
+.dsd-image-stage-hint { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); max-width:calc(100% - 32px); padding:3px 10px; border-radius:999px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:color-mix(in srgb, var(--dsw-alias-bg-layer-2,#fff) 88%, transparent); color:var(--dsw-alias-label-secondary,#6b6b76); font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; }
+.dsd-image-stage-error { display:flex; flex-direction:column; align-items:center; gap:10px; color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-image-full { position:absolute; inset:0; z-index:78; display:flex; flex-direction:column; background:color-mix(in srgb, var(--dsw-alias-bg-base,#fff) 97%, transparent); }
-.dsd-image-full-stage { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; overflow:auto; padding:14px 16px 46px; }
+.dsd-image-full-stage { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; overflow:auto; padding:16px 18px 46px; }
 .dsd-image-full-stage[data-zoom=true] { align-items:flex-start; justify-content:flex-start; }
 .dsd-image-full-img { display:block; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; cursor:zoom-out; }
-.dsd-image-full-hint { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); max-width:calc(100% - 220px); padding:4px 11px; border-radius:999px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.dsd-image-full-exit { position:absolute; top:10px; right:12px; display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 10px; border-radius:999px; border:1px solid var(--dsw-alias-border-l2,#d0d0d8); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); font:inherit; font-size:11.5px; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,.16); }
-.dsd-image-full-exit:hover { background:var(--dsw-alias-bg-layer-1,#f6f6f8); }
+.dsd-image-full-hint { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); max-width:calc(100% - 180px); padding:4px 11px; border-radius:999px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .dsd-media-badge { display:flex; align-items:center; justify-content:center; width:76px; height:76px; border-radius:20px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 10%, var(--dsw-alias-bg-layer-1,#f6f6f8)); color:var(--dsw-alias-state-business-primary,#2f6fed); }
 .dsd-media-title { font-size:13px; font-weight:600; text-align:center; word-break:break-all; }
 .dsd-media-note { max-width:620px; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; line-height:1.6; text-align:center; }
@@ -2517,7 +2509,7 @@ body.dsd-immersive { overflow:hidden !important; }
       )
     }
 
-    function PanelPage({ toggleHostSidebar, remote }) {
+    function PanelPage({ toggleHostSidebar }) {
       const library = useLibrary()
       const bookmarks = useBookmarks()
       const [currentFolder, setCurrentFolder] = useState(null)
@@ -2802,10 +2794,12 @@ body.dsd-immersive { overflow:hidden !important; }
         const node = mediaRef.current
         if (!node) return undefined
         const onWheel = (event) => {
-          if (!event.shiftKey || event.deltaY === 0) return
+          if (!event.shiftKey) return
+          const delta = event.deltaY !== 0 ? event.deltaY : event.deltaX
+          if (delta === 0) return
           event.preventDefault()
           setImageScale((value) => {
-            const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12
+            const factor = delta < 0 ? 1.12 : 1 / 1.12
             return Math.min(6, Math.max(0.2, Math.round(value * factor * 100) / 100))
           })
         }
@@ -3230,43 +3224,6 @@ body.dsd-immersive { overflow:hidden !important; }
         },
         [showToast],
       )
-
-      const revealFile = useCallback(async () => {
-        if (!activePath || activePath === GUIDE_PATH) return
-        const reasons = []
-        const remoteApi = remote && remote.session && typeof remote.session.openWorkspacePath === 'function' ? remote.session : null
-        if (remoteApi) {
-          const controller = new AbortController()
-          const timer = window.setTimeout(() => controller.abort(), 6000)
-          try {
-            const result = await remoteApi.openWorkspacePath({ path: activePath, action: 'reveal' }, controller.signal)
-            if (result && result.ok === true) {
-              showToast(t('toast.revealed'))
-              return
-            }
-            const error = result && result.error
-            reasons.push(error && (error.code || error.message) ? error.code || error.message : 'remote')
-          } catch (error) {
-            reasons.push(error && error.message ? error.message : 'remote')
-          } finally {
-            window.clearTimeout(timer)
-          }
-        } else {
-          reasons.push('remote-unavailable')
-        }
-        try {
-          const response = await fetch(`${API_REVEAL}?path=${encodeURIComponent(activePath)}`, { credentials: 'same-origin' })
-          const body = await response.json().catch(() => null)
-          if (response.ok && body && body.ok === true) {
-            showToast(t('toast.revealed'))
-            return
-          }
-          reasons.push(body && body.error ? body.error : `HTTP ${response.status}`)
-        } catch (error) {
-          reasons.push(error && error.message ? error.message : 'reveal')
-        }
-        showToast(t('toast.revealFailedDetail', { reason: reasons.filter(Boolean).join(' / ') || 'unknown' }))
-      }, [activePath, remote, showToast])
 
       const openPicker = useCallback(async () => {
         const token = (pickerToken.current += 1)
@@ -4752,18 +4709,6 @@ body.dsd-immersive { overflow:hidden !important; }
             { className: 'dsd-image-full-hint' },
             `${imageScale === 1 ? '' : `${Math.round(imageScale * 100)}% · `}${t('doc.imageFullHint')}`,
           ),
-          h(
-            'button',
-            {
-              className: 'dsd-image-full-exit',
-              type: 'button',
-              title: t('doc.imageFullExit'),
-              'aria-label': t('doc.imageFullExit'),
-              onClick: () => setImageFull(false),
-            },
-            icon('collapse', 14),
-            h('span', null, t('doc.imageFullExit')),
-          ),
         )
       }
 
@@ -4822,6 +4767,91 @@ body.dsd-immersive { overflow:hidden !important; }
                 : null,
             ),
           )
+        if (kind === 'image') {
+          const zoomed = imageScale !== 1
+          return h(
+            'div',
+            { className: 'dsd-doc dsd-doc-image' },
+            h(
+              'div',
+              { className: 'dsd-image-head' },
+              icon('image', 14),
+              h(
+                'div',
+                { className: 'dsd-image-head-text' },
+                h('strong', { className: 'dsd-image-name', title: activePath }, (docReady && doc.name) || basename(activePath)),
+                h(
+                  'span',
+                  { className: 'dsd-image-meta' },
+                  [kindLabel, docReady && Number.isFinite(doc.size) ? formatSize(doc.size) : '', doc.external ? t('doc.externalTag') : ''].filter(Boolean).join(' · '),
+                ),
+              ),
+              h(
+                'div',
+                { className: 'dsd-image-actions' },
+                pathButton('copy', t('action.copyPath'), () => copyText(activePath), false, t('bar.copy')),
+                pathButton('refresh', t('action.refreshContent'), reloadDoc, false, t('bar.reload')),
+                !doc.external ? pathButton('download', t('doc.download'), download, false, t('bar.download')) : null,
+                pathButton(
+                  immersive ? 'collapse' : 'expand',
+                  immersive ? t('immersive.exit') : t('immersive.enter'),
+                  toggleImmersive,
+                  immersive,
+                  t('bar.immersive'),
+                  immersive,
+                ),
+              ),
+            ),
+            doc.status === 'loading' || (doc.status === 'ready' && !docReady)
+              ? h('div', { className: 'dsd-doc-loading' }, t('doc.loading'))
+              : doc.status === 'error' && doc.path === activePath
+                ? h(
+                    'div',
+                    { className: 'dsd-doc-error' },
+                    h('span', null, t('doc.failed', { reason: doc.error || 'unknown' })),
+                    h(
+                      'div',
+                      { className: 'dsd-doc-error-actions' },
+                      h('button', { className: 'dsd-btn', type: 'button', onClick: reloadDoc }, icon('refresh', 13), h('span', null, t('action.retry'))),
+                      h('button', { className: 'dsd-btn', type: 'button', onClick: () => removeItem(activePath) }, icon('trash', 13), h('span', null, t('action.remove'))),
+                    ),
+                  )
+                : docReady
+                  ? h(
+                      'div',
+                      { className: 'dsd-image-stage', ref: mediaRef, 'data-zoom': zoomed ? 'true' : 'false' },
+                      mediaError
+                        ? h(
+                            'div',
+                            { className: 'dsd-image-stage-error' },
+                            icon('image', 30),
+                            h('div', { className: 'dsd-media-note' }, t('doc.mediaFailed')),
+                            h(
+                              'button',
+                              { className: 'dsd-btn', type: 'button', onClick: openExternal },
+                              icon('external', 14),
+                              h('span', null, t('doc.openExternal')),
+                            ),
+                          )
+                        : h('img', {
+                            className: 'dsd-image-main',
+                            src: mediaUrl,
+                            alt: doc.name || basename(activePath),
+                            draggable: false,
+                            style: zoomed ? { width: `${imageScale * 100}%`, maxWidth: 'none', maxHeight: 'none' } : undefined,
+                            title: t('doc.imageEnterFull'),
+                            onClick: () => setImageFull(true),
+                            onError: () => setMediaError(true),
+                          }),
+                      h(
+                        'div',
+                        { className: 'dsd-image-stage-hint' },
+                        zoomed ? `${Math.round(imageScale * 100)}% · ${t('doc.imageHint')}` : t('doc.imageHint'),
+                      ),
+                    )
+                  : null,
+          )
+        }
         const renderReady = () => {
           if (kind === 'markdown' || kind === 'text') {
             const empty = doc.content.trim() === ''
@@ -4834,25 +4864,6 @@ body.dsd-immersive { overflow:hidden !important; }
                 : kind === 'markdown'
                   ? renderMarkdown(doc.content, 'doc', docDir)
                   : h('pre', { className: 'dsd-doc-text' }, doc.content),
-            )
-          }
-          if (kind === 'image') {
-            if (mediaError) return mediaCard('image', t('doc.mediaFailed'))
-            const zoomed = imageScale !== 1
-            return h(
-              'div',
-              { className: 'dsd-media', ref: mediaRef, 'data-zoom': zoomed ? 'true' : 'false' },
-              h('img', {
-                className: 'dsd-media-image',
-                src: mediaUrl,
-                alt: doc.name || basename(activePath),
-                draggable: false,
-                style: zoomed ? { width: `${imageScale * 100}%`, maxWidth: 'none', maxHeight: 'none' } : undefined,
-                title: t('doc.imageEnterFull'),
-                onClick: () => setImageFull(true),
-                onError: () => setMediaError(true),
-              }),
-              h('div', { className: 'dsd-media-note' }, imageScale === 1 ? t('doc.imageHint') : `${Math.round(imageScale * 100)}% · ${t('doc.imageHint')}`),
             )
           }
           if (kind === 'html') {
@@ -4989,7 +5000,6 @@ body.dsd-immersive { overflow:hidden !important; }
                   { className: 'dsd-doc-pathbar' },
                   icon(KIND_ICON[kind] || 'doc', 14),
                   h('span', { className: 'dsd-doc-path', title: activePath }, activePath),
-                  activePath !== GUIDE_PATH ? pathButton('reveal', t('doc.revealTitle'), revealFile, false, t('bar.reveal')) : null,
                   pathButton('copy', t('action.copyPath'), () => copyText(activePath), false, t('bar.copy')),
                   pathButton('refresh', t('action.refreshContent'), reloadDoc, false, t('bar.reload')),
                   activePath !== GUIDE_PATH && !canRead ? pathButton('external', t('doc.openExternal'), openExternal, false, t('bar.open')) : null,
@@ -5499,19 +5509,6 @@ body.dsd-immersive { overflow:hidden !important; }
         } catch {
           layout = undefined
         }
-        let remote
-        try {
-          remote = ctx.get('remote', false)
-        } catch {
-          remote = undefined
-        }
-        if (!remote) {
-          try {
-            remote = ctx.remote
-          } catch {
-            remote = undefined
-          }
-        }
         const toggleSidebar = () => {
           try {
             ;(layout || ctx.get('layout', false))?.toggleSidebar?.()
@@ -5520,7 +5517,7 @@ body.dsd-immersive { overflow:hidden !important; }
           }
         }
         const SidebarToggleEntry = () => h(SidebarToggle, { toggleSidebar })
-        const PanelPageEntry = () => h(PanelPage, { toggleHostSidebar: toggleSidebar, remote })
+        const PanelPageEntry = () => h(PanelPage, { toggleHostSidebar: toggleSidebar })
 
         disposers.push(
           ctx.slots.inject('sidebar.panellist', () =>

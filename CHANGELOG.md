@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 — 2026-11-12
+
+- Fixed Shift+wheel zoom after entering the image full-screen layer. Windows browsers report Shift+wheel as a horizontal delta (`deltaX`), so the zoom now falls back to `deltaX` when `deltaY` is zero; zooming works in both the inline stage and the full-screen layer.
+- Simplified and calmed the image page: a compact header shows the file name, type, size and an **External** tag instead of the long absolute path bar and its notice banner; the image sits on a quiet stage with one hint pill, and the full-screen layer is just the image plus an Esc/click hint.
+- Removed the **Reveal** path-bar action, its Host route and its metadata: it could not reliably reach the desktop file manager, and the operating system already offers the same thing from the copied path.
+- The image page no longer shows the workspace notice banner; external files carry an **External** tag instead. The full path stays in the filename tooltip and in **Copy**.
+
 ## 0.5.2 — 2026-11-12
 
 - Clicking an image now opens it in a full-screen layer instead of switching to actual size. The layer is positioned inside the panel, so in immersive mode it fills the whole screen, while in the normal layout it fills the library panel. Click the image again, press <kbd>Esc</kbd>, or use the floating **Exit full screen** button to leave.

@@ -24,7 +24,6 @@
  * leave the Host.
  */
 
-import { spawn } from 'node:child_process'
 import { createReadStream, promises as fs, readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -34,7 +33,6 @@ const RESOLVE_ROUTE = '/api/dsh-docdesk/resolve'
 const MERMAID_ROUTE = '/api/dsh-docdesk/mermaid.js'
 const FILE_ROUTE = '/api/dsh-docdesk/file'
 const SITE_ROUTE = '/api/dsh-docdesk/site'
-const REVEAL_ROUTE = '/api/dsh-docdesk/reveal'
 
 const MAX_FILES = 3000
 const MAX_ASSET_FILES = 1200
@@ -911,88 +909,6 @@ async function handleSite(ctx, request, response) {
   })
 }
 
-/* --------------------------------------------------------------- reveal */
-
-/**
- * Show one file in the desktop file manager. The Host's own openWorkspacePath
- * is the primary route (it applies DSH's Host-path mapping); when that service
- * is missing or rejects the path, fall back to the platform's native reveal
- * command, still without a shell.
- */
-function revealInFileManager(target) {
-  if (process.env.DSH_DOCDESK_REVEAL_DRY === '1') return true
-  try {
-    let child
-    if (process.platform === 'win32') {
-      child = spawn('explorer.exe', [`/select,${target}`], { detached: true, stdio: 'ignore', windowsHide: true })
-    } else if (process.platform === 'darwin') {
-      child = spawn('open', ['-R', target], { detached: true, stdio: 'ignore' })
-    } else {
-      child = spawn('xdg-open', [path.dirname(target)], { detached: true, stdio: 'ignore' })
-    }
-    child.on('error', () => {})
-    child.unref()
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function handleReveal(ctx, request, response) {
-  if (!isAllowed(ctx, request)) {
-    sendJson(response, 403, { error: 'forbidden' })
-    return
-  }
-  if (request.method && request.method !== 'GET' && request.method !== 'POST') {
-    sendJson(response, 405, { error: 'method-not-allowed' })
-    return
-  }
-  const url = requestUrl(request)
-  const raw = url?.searchParams.get('path')
-  if (!raw) {
-    sendJson(response, 400, { error: 'missing-path' })
-    return
-  }
-  let target
-  try {
-    target = path.resolve(raw)
-  } catch {
-    sendJson(response, 400, { error: 'invalid-path' })
-    return
-  }
-  let stat
-  try {
-    stat = await fs.stat(target)
-  } catch {
-    sendJson(response, 404, { error: 'not-found' })
-    return
-  }
-  if (!stat.isFile()) {
-    sendJson(response, 404, { error: 'not-found' })
-    return
-  }
-  let sessionController
-  try {
-    sessionController = ctx.get('sessionController', false)
-  } catch {
-    sessionController = undefined
-  }
-  if (sessionController && typeof sessionController.openWorkspacePath === 'function') {
-    try {
-      await sessionController.openWorkspacePath({ path: target, action: 'reveal' }, AbortSignal.timeout(8000))
-      sendJson(response, 200, { ok: true, path: target, via: 'sessionController' })
-      return
-    } catch {
-      /* fall through to the native reveal */
-    }
-  }
-  if (!revealInFileManager(target)) {
-    sendJson(response, 501, { ok: false, error: 'reveal-unavailable' })
-    return
-  }
-  sendJson(response, 200, { ok: true, path: target, via: 'native' })
-}
-
 /* --------------------------------------------------------------- presented */
 
 function coordinate(value) {
@@ -1122,11 +1038,6 @@ export function apply(ctx) {
         kind: 'prefix',
         path: SITE_ROUTE,
         handler: (request, response) => handleSite(ctx, request, response),
-      }),
-      webServer.register({
-        kind: 'exact',
-        path: REVEAL_ROUTE,
-        handler: (request, response) => handleReveal(ctx, request, response),
       }),
       webServer.register({
         kind: 'exact',
