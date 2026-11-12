@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.3 — 2026-11-12
+
+- Fixed the black 资料区 panel when an image tab was restored or opened: the image page still referenced a removed `zoomed` variable, so the panel threw a `ReferenceError` before painting. The image page renders again.
+- Verified against the real GUI through headless Edge: an image tab renders with the correct name, size and External tag; Shift+wheel zooms 100% → 112%; clicking the image opens the panel-sized full-screen layer; clicking the backdrop closes it; no console exceptions.
+
 ## 0.6.2 — 2026-11-12
 
 - Image zoom now sizes against the fitted image instead of the stage width, and the image never flex-shrinks: 20%–600% behaves correctly in both the inline stage and the full-screen layer, zooming out actually shrinks small images, and 600% is reachable for large ones. The fit is re-measured on load, stage resize and full-screen entry/exit.

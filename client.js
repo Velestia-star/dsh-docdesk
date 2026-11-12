@@ -4968,7 +4968,7 @@ body.dsd-immersive { overflow:hidden !important; }
                       h(
                         'div',
                         { className: 'dsd-image-stage-hint' },
-                        zoomed ? `${Math.round(imageScale * 100)}% · ${t('doc.imageHint')}` : t('doc.imageHint'),
+                        imageScale === 1 ? t('doc.imageHint') : `${Math.round(imageScale * 100)}% · ${t('doc.imageHint')}`,
                       ),
                     )
                   : null,
