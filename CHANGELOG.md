@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 — 2026-11-12
+
+Multi-format materials library.
+
+- The picker and library now hold Markdown (`.md`, `.markdown`, `.mdx`, `.mdown`, `.mkd`), plain text and code, HTML, images, PDF, audio and video, plus extensionless `README` / `LICENSE` / `Makefile` / `Dockerfile` files.
+- Per-type icons on the desktop grid and document tabs; picker rows show a type chip, and filter chips (All / Documents / Images / Web / PDF / Media / Other) sit beside the search box.
+- Plain text and code open in a monospace scrolling reader with the 2 MB preview cap. Images fit the window with a one-click actual-size switch. PDF uses the browser's built-in viewer. Audio and video use native players, seekable through HTTP Range.
+- HTML renders in a sandboxed iframe in the reading pane: inline CSS/JS runs, but fetch/XHR requests, form submits and top-level navigation are blocked. Relative sibling assets load from the same workspace root through a workspace-confined site route, so an exported HTML report with an `assets/` folder works.
+- Bookmarks and line highlights remain Markdown-only. Plain text keeps the last-read position and bar but has no line bookmarks, and the other viewers are read-only.
+- Office documents, archives, fonts and unknown binaries cannot be previewed in a browser. The picker does not list them, and the file card's **Add to library** action reports the format as unsupported.
+- New host routes: `GET /api/dsh-docdesk/file` (raw bytes, HTTP Range for media, `download=1` for attachments) and `/api/dsh-docdesk/site/<root>/<relative path>` (an HTML file's sibling assets). Every route keeps the loopback / paired-device fence and stays confined to scanned workspace roots; only whitelisted extensions are served and hidden dot-segments are rejected.
+- HTML and SVG are served with `Content-Security-Policy: sandbox`, `connect-src 'none'` and `form-action 'none'`.
+- The scan still caps at 3,000 files per scan and now also caps image/audio/video/PDF candidates at 1,200 items, so media cannot crowd documents out of the picker.
+- Library entries still live in `dsh-docdesk.library.v2` in the browser; disk files are never moved, renamed or deleted.
+
 ## 0.3.28 — 2026-11-08
 
 - Raised the declared DSH compatibility floor to `>=0.2.2-rc.1`. Checked the plugin against DSH 0.2.2-rc.1 (Cordis 4.1): it declares no host peer dependencies, and the host/client entry points it uses are unchanged, so no code migration was required.

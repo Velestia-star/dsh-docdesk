@@ -9,6 +9,7 @@ window.__ModuleLoader__.load({
     const NS = 'dsh-docdesk'
     const API_LIST = '/api/dsh-docdesk/list'
     const API_READ = '/api/dsh-docdesk/read'
+    const API_FILE = '/api/dsh-docdesk/file'
     const API_RESOLVE = '/api/dsh-docdesk/resolve'
     const MERMAID_URL = '/api/dsh-docdesk/mermaid.js'
     const STORAGE_KEY = 'dsh-docdesk.library.v2'
@@ -20,8 +21,15 @@ window.__ModuleLoader__.load({
 
 这份说明书随插件更新。只记常用操作，细节靠右键菜单探索。
 
+## 文件类型
+- 文档：Markdown、纯文本、代码与配置文件。
+- 网页：HTML 在沙箱里打开，同目录的样式、脚本和图片会一起加载；fetch/XHR 请求和表单提交被禁止。
+- 图片：JPG、PNG、GIF、WebP、SVG 等，点图片可以切换原始大小。
+- 其他：PDF 用浏览器阅读器打开，音频和视频可以直接播放。
+- 办公文档、压缩包等无法在浏览器里预览的格式不会出现在「添加文件」里。
+
 ## 添加与整理
-- 右上角「添加文件」打开选择器；文件只会加入资料区，不会移动磁盘文件。
+- 右上角「添加文件」打开选择器；文件只会加入资料区，不会移动磁盘文件。选择器上方的「全部 / 文档 / 图片 / 网页 / PDF / 媒体 / 其他」可以按类型过滤。
 - 拖到真正的空格时只移动拖动的文件；拖到图标之间的插入标线时，只把挡路的图标向后推：有空位就补空位，没空位就带着挡路图标一起移；多选整组始终占连续格子，不会跳过行尾的文件。
 - 按住右键在空白处拖动可以框选；拖动任意选中项会整组移动。拖动时图标保持抓取点与鼠标同步；整组拖动时其他选中项会靠近并隐藏在被拖图标后面，松开后出现在最终位置。
 - 新建文件夹后，可以把文件拖进去；右键菜单也能移动。右键文件夹可以「解散文件夹」或「删除文件夹」。
@@ -32,11 +40,13 @@ window.__ModuleLoader__.load({
 - 左侧中间有一个隐藏箭头，鼠标移到屏幕左边缘可以展开或收起侧栏。
 
 ## 阅读
-- 双击文档打开；顶部标签切换文件，「资料区」回主页。
+- 双击文件打开；顶部标签切换文件，「资料区」回主页。
+- Markdown 照常渲染表格、图表和 Mermaid；纯文本与代码用等宽滚动阅读器打开；图片、PDF、音频、视频各用自己的阅读界面。
+- 图片点一下在「适应窗口」和「原始大小」之间切换；网页和 PDF 只能在沙箱或浏览器阅读器里看，需要保存时点下载。
 - 按 F 进入或退出沉浸阅读；Esc 也可以退出。沉浸中每行图标数和普通模式相同，横向间距会拉大；退出后回到原来的位置。
-- 按 B 或在右侧书签按钮添加书签；书签面板可以跳转、改标题、写备注、删除。
-- 滚动时自动记录上次阅读位置；重新打开文档时顶部会显示「上次阅读」和「继续阅读」。
-- 正文里右键某一行也可以插入书签。
+- 按 B 或在右侧书签按钮添加书签（只对 Markdown）；书签面板可以跳转、改标题、写备注、删除。
+- 滚动时自动记录上次阅读位置；重新打开 Markdown 或纯文本时顶部会显示「上次阅读」和「继续阅读」。
+- 正文里右键某一行也可以插入书签（只对 Markdown）。
 - 同一个右键菜单里可以「高亮此行」，永久保留；再次右键可取消，只显示底色，不显示侧边标记。
 - 右侧滚动条左边的小横线是书签位置；鼠标移过去或滚轮经过会显示书签信息。
 - 点书签跳转时，目标行会保持高亮 3 秒，然后慢慢消失。
@@ -50,8 +60,9 @@ window.__ModuleLoader__.load({
 - Delete：把选中项移出资料区（不删文件）
 
 ## 数据和限制
-- 文档顺序、文件夹、书签和阅读位置保存在当前浏览器。
+- 文件顺序、文件夹、书签和阅读位置保存在当前浏览器。
 - 书签位置按文件绝对路径保存；文件移动后旧书签不会自动跟随。
+- 单个文本预览最多显示前 2 MB；更大的文件请用下载或新标签打开。
 - 说明书本身也可以像普通文档一样重命名或移出资料区；移出后不会再次自动加入。`
 
     const ICON_W = 88
@@ -89,22 +100,29 @@ window.__ModuleLoader__.load({
       'action.refresh': '刷新',
       'action.refreshContent': '重新读取',
       'empty.title': '资料区还是空的',
-      'empty.hint': '点右上角「添加文件」从工作区选择 Markdown 文档；以后生成的文件也可以在文件卡片上右键，选择「放入资料区」。',
+      'empty.hint': '点右上角「添加文件」从工作区选择文档、图片、网页或媒体；以后生成的文件也可以在文件卡片上右键，选择「放入资料区」。',
       'empty.folderTitle': '这个文件夹还是空的',
-      'empty.folderHint': '把文档拖到文件夹图标上，或右键文件选择「移动到文件夹」。',
+      'empty.folderHint': '把文件拖到文件夹图标上，或右键文件选择「移动到文件夹」。',
       'folder.defaultName': '新建文件夹',
       'folder.root': '资料区',
       'folder.count': '{count} 项',
       'picker.title': '添加文件',
-      'picker.subtitle': '从工作区选择要放进资料区的 Markdown',
+      'picker.subtitle': '从工作区选择要放进资料区的文档、图片、网页或媒体',
       'picker.search': '搜索文件',
-      'picker.empty': '没有可添加的 Markdown 文件',
+      'picker.empty': '没有可添加的文件；换个分类筛选试试',
       'picker.loading': '正在扫描工作区…',
       'picker.failed': '扫描失败：{reason}',
       'picker.added': '已加入',
       'picker.selected': '已选 {count} 个',
       'picker.roots': '{count} 个目录',
       'picker.partial': '部分目录未扫描完',
+      'picker.filter.all': '全部',
+      'picker.filter.doc': '文档',
+      'picker.filter.image': '图片',
+      'picker.filter.html': '网页',
+      'picker.filter.pdf': 'PDF',
+      'picker.filter.media': '媒体',
+      'picker.filter.other': '其他',
       'tab.close': '关闭标签页',
       'doc.loading': '正在读取…',
       'doc.failed': '读取失败：{reason}',
@@ -139,10 +157,21 @@ window.__ModuleLoader__.load({
       'bookmarks.dismiss': '隐藏上次阅读提示',
       'guide.name': '资料区使用说明',
       'menu.parent': '返回上一级',
-      'folder.tip': '{folders} 个文件夹 · {files} 个文档',
+      'folder.tip': '{folders} 个文件夹 · {files} 个文件',
       'doc.addBookmark': '在此处插入书签',
       'doc.highlightLine': '高亮此行',
       'doc.unhighlightLine': '取消此行高亮',
+      'doc.openExternal': '在新标签打开',
+      'doc.download': '下载',
+      'doc.htmlHint': '网页在沙箱中打开：脚本可以运行，但 fetch/XHR 请求、表单提交和跳出阅读器都被禁止。',
+      'doc.pdfHint': '使用浏览器内置的 PDF 阅读器；需要保存时可以点下载。',
+      'doc.imageHint': '点击图片可在「适应窗口」和「原始大小」之间切换。',
+      'doc.imageZoomIn': '原始大小',
+      'doc.imageZoomOut': '适应窗口',
+      'doc.audioHint': '音频文件，可以直接播放。',
+      'doc.videoHint': '视频文件，可以直接播放。',
+      'doc.unsupported': '这个格式无法内嵌预览，可以在新标签打开或下载。',
+      'doc.mediaMeta': '{kind} · {size}',
       'pathDrop.title': '移动到文件夹',
       'pathDrop.hint': '移到路径上，松开鼠标放入',
       'pathDrop.current': '当前',
@@ -166,8 +195,8 @@ window.__ModuleLoader__.load({
       'confirm.removeTitle': '从资料区移除？',
       'confirm.removeMany': '选中的 {count} 项会从资料区移除，磁盘上的文件不会被删除；文件夹里的文档会移回上一级。',
       'confirm.remove': '移除',
-      'status.count': '{count} 个文档',
-      'toast.added': '已加入 {count} 个文档',
+      'status.count': '{count} 项',
+      'toast.added': '已加入 {count} 个文件',
       'toast.already': '这些文档已经在资料区了',
       'toast.removed': '已从资料区移除',
       'toast.copied': '路径已复制',
@@ -181,7 +210,7 @@ window.__ModuleLoader__.load({
       'context.resolving': '正在加入…',
       'context.added': '已在资料区',
       'context.failed': '加入失败',
-      'context.notMarkdown': '仅支持 Markdown 文件',
+      'context.unsupported': '暂不支持该文件类型',
       'menu.moveHint': '当前没有其他文件夹',
       'menu.root': '资料区（根目录）',
       'menu.separator': '移动到',
@@ -200,7 +229,7 @@ window.__ModuleLoader__.load({
       'error.forbidden': '无法访问（仅本机可用）',
       'error.outside': '文件不在可访问的目录内',
       'error.notFound': '文件不存在',
-      'error.notMarkdown': '不是 Markdown 文件',
+      'error.unsupported': '不支持的文件类型',
       'sidebar.toggle': '隐藏 / 显示侧边栏',
     }
 
@@ -229,22 +258,29 @@ window.__ModuleLoader__.load({
       'action.refresh': 'Refresh',
       'action.refreshContent': 'Reload',
       'empty.title': 'Your library is empty',
-      'empty.hint': 'Use “Add files” in the top-right to pick Markdown documents from your workspaces. Generated files can also be right-clicked on their file card and added with “Add to library”.',
+      'empty.hint': 'Use “Add files” in the top-right to pick documents, images, web pages or media from your workspaces. Generated files can also be right-clicked on their file card and added with “Add to library”.',
       'empty.folderTitle': 'This folder is empty',
-      'empty.folderHint': 'Drag a document onto a folder icon, or right-click it and choose “Move to folder”.',
+      'empty.folderHint': 'Drag a file onto a folder icon, or right-click it and choose “Move to folder”.',
       'folder.defaultName': 'New folder',
       'folder.root': 'Materials',
       'folder.count': '{count} items',
       'picker.title': 'Add files',
-      'picker.subtitle': 'Pick Markdown documents from your workspaces',
+      'picker.subtitle': 'Pick documents, images, web pages or media from your workspaces',
       'picker.search': 'Search files',
-      'picker.empty': 'No Markdown files to add',
+      'picker.empty': 'No files to add; try another filter',
       'picker.loading': 'Scanning workspaces…',
       'picker.failed': 'Scan failed: {reason}',
       'picker.added': 'Added',
       'picker.selected': '{count} selected',
       'picker.roots': '{count} directories',
       'picker.partial': 'Some directories were not scanned',
+      'picker.filter.all': 'All',
+      'picker.filter.doc': 'Documents',
+      'picker.filter.image': 'Images',
+      'picker.filter.html': 'Web',
+      'picker.filter.pdf': 'PDF',
+      'picker.filter.media': 'Media',
+      'picker.filter.other': 'Other',
       'tab.close': 'Close tab',
       'doc.loading': 'Reading…',
       'doc.failed': 'Read failed: {reason}',
@@ -279,10 +315,21 @@ window.__ModuleLoader__.load({
       'bookmarks.dismiss': 'Hide last-read prompt',
       'guide.name': 'DocDesk guide',
       'menu.parent': 'Go up one level',
-      'folder.tip': '{folders} folders · {files} documents',
+      'folder.tip': '{folders} folders · {files} files',
       'doc.addBookmark': 'Insert bookmark at this line',
       'doc.highlightLine': 'Highlight this line',
       'doc.unhighlightLine': 'Remove line highlight',
+      'doc.openExternal': 'Open in new tab',
+      'doc.download': 'Download',
+      'doc.htmlHint': 'This page opens in a sandbox: scripts run, while fetch/XHR requests, form submits and escaping the reader are blocked.',
+      'doc.pdfHint': 'Rendered by the browser’s built-in PDF viewer; use Download to save a copy.',
+      'doc.imageHint': 'Click the image to switch between fit-to-window and actual size.',
+      'doc.imageZoomIn': 'Actual size',
+      'doc.imageZoomOut': 'Fit to window',
+      'doc.audioHint': 'Audio file, ready to play.',
+      'doc.videoHint': 'Video file, ready to play.',
+      'doc.unsupported': 'This format cannot be previewed inline. Open it in a new tab or download it.',
+      'doc.mediaMeta': '{kind} · {size}',
       'pathDrop.title': 'Move to folder',
       'pathDrop.hint': 'Hover a path segment, then release to move',
       'pathDrop.current': 'Current',
@@ -306,8 +353,8 @@ window.__ModuleLoader__.load({
       'confirm.removeTitle': 'Remove from library?',
       'confirm.removeMany': 'The selected {count} item(s) will be removed from the library. Files on disk are not deleted; documents inside removed folders return to the parent.',
       'confirm.remove': 'Remove',
-      'status.count': '{count} documents',
-      'toast.added': '{count} documents added',
+      'status.count': '{count} items',
+      'toast.added': '{count} files added',
       'toast.already': 'Those documents are already in the library',
       'toast.removed': 'Removed from the library',
       'toast.copied': 'Path copied',
@@ -321,7 +368,7 @@ window.__ModuleLoader__.load({
       'context.resolving': 'Adding…',
       'context.added': 'In the library',
       'context.failed': 'Could not add',
-      'context.notMarkdown': 'Only Markdown files are supported',
+      'context.unsupported': 'This file type is not supported',
       'menu.moveHint': 'No other folders yet',
       'menu.root': 'Materials (root)',
       'menu.separator': 'Move to',
@@ -340,7 +387,7 @@ window.__ModuleLoader__.load({
       'error.forbidden': 'Access denied (loopback only)',
       'error.outside': 'The file is outside the readable folders',
       'error.notFound': 'File not found',
-      'error.notMarkdown': 'Not a Markdown file',
+      'error.unsupported': 'Unsupported file type',
       'sidebar.toggle': 'Hide / show sidebar',
     }
 
@@ -372,6 +419,101 @@ window.__ModuleLoader__.load({
       if (typeof value !== 'string') return ''
       const parts = value.split(/[\\/]/u)
       return parts[parts.length - 1] || value
+    }
+
+    /* ----------------------------------------------------------- file types */
+
+    /*
+     * The kind table mirrors the Host half (index.js). Keep the two in sync:
+     * anything listed here must be servable by /api/dsh-docdesk/file, and
+     * formats that a browser cannot preview stay out of the library.
+     */
+    const FILE_KINDS = {
+      markdown: ['md', 'markdown', 'mdx', 'mdown', 'mkd'],
+      html: ['html', 'htm', 'xhtml'],
+      image: ['png', 'jpg', 'jpeg', 'jfif', 'gif', 'webp', 'bmp', 'svg', 'ico', 'avif', 'apng'],
+      pdf: ['pdf'],
+      audio: ['mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'opus', 'weba'],
+      video: ['mp4', 'webm', 'ogv', 'mov', 'm4v'],
+      text: [
+        'txt', 'log', 'csv', 'tsv', 'json', 'jsonc', 'jsonl', 'ndjson', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf',
+        'properties', 'xml', 'sql', 'graphql', 'gql', 'rst', 'tex', 'srt', 'vtt', 'js', 'mjs', 'cjs', 'jsx', 'ts', 'tsx',
+        'css', 'scss', 'sass', 'less', 'vue', 'svelte', 'astro', 'py', 'pyi', 'rb', 'php', 'java', 'kt', 'kts', 'c', 'h',
+        'cc', 'cpp', 'cxx', 'hpp', 'hh', 'cs', 'go', 'rs', 'swift', 'm', 'mm', 'scala', 'clj', 'cljs', 'lua', 'pl', 'pm',
+        'r', 'jl', 'dart', 'ex', 'exs', 'erl', 'hrl', 'fs', 'fsx', 'vb', 'pas', 'asm', 's', 'sh', 'bash', 'zsh', 'fish',
+        'ps1', 'psm1', 'bat', 'cmd', 'ipynb',
+      ],
+    }
+
+    const FILE_KIND_BY_EXT = new Map()
+    for (const [kind, extensions] of Object.entries(FILE_KINDS)) {
+      for (const extension of extensions) FILE_KIND_BY_EXT.set(extension, kind)
+    }
+
+    const TEXT_BASENAMES = new Set([
+      'readme', 'license', 'licence', 'notice', 'authors', 'contributing', 'changelog', 'makefile', 'dockerfile',
+      'gemfile', 'procfile', 'rakefile', 'justfile',
+    ])
+
+    const KIND_ICON = {
+      markdown: 'doc',
+      text: 'code',
+      html: 'globe',
+      image: 'image',
+      pdf: 'pdf',
+      audio: 'audio',
+      video: 'video',
+      unknown: 'doc',
+    }
+
+    const KIND_CHIP = {
+      markdown: 'MD',
+      text: 'TXT',
+      html: 'HTML',
+      image: 'IMG',
+      pdf: 'PDF',
+      audio: 'AUDIO',
+      video: 'VIDEO',
+      unknown: 'FILE',
+    }
+
+    function fileExt(value) {
+      const name = basename(value)
+      const dot = name.lastIndexOf('.')
+      return dot > 0 && dot < name.length - 1 ? name.slice(dot + 1).toLowerCase() : ''
+    }
+
+    function fileKind(value) {
+      const extension = fileExt(value)
+      if (extension !== '' && FILE_KIND_BY_EXT.has(extension)) return FILE_KIND_BY_EXT.get(extension)
+      if (extension === '' && TEXT_BASENAMES.has(basename(value).toLowerCase())) return 'text'
+      return 'unknown'
+    }
+
+    function fileKindIcon(value) {
+      return KIND_ICON[fileKind(value)] || 'doc'
+    }
+
+    function fileKindChip(value) {
+      const extension = fileExt(value)
+      return extension !== '' ? extension.toUpperCase() : KIND_CHIP[fileKind(value)] || 'FILE'
+    }
+
+    /** Picker filter buckets: documents, images, web pages, PDFs, media, other. */
+    function fileKindGroup(kind) {
+      if (kind === 'markdown' || kind === 'text') return 'doc'
+      if (kind === 'audio' || kind === 'video') return 'media'
+      if (kind === 'image' || kind === 'html' || kind === 'pdf') return kind
+      return 'other'
+    }
+
+    function fileUrl(value, download) {
+      return `${API_FILE}?path=${encodeURIComponent(value)}${download ? '&download=1' : ''}`
+    }
+
+    function versionedUrl(url, version) {
+      if (!url) return url
+      return `${url}${url.includes('?') ? '&' : '?'}v=${version}`
     }
 
     function emptyLibrary() {
@@ -1199,6 +1341,45 @@ window.__ModuleLoader__.load({
           return paths(['M6.2 18.6l-1.1 2.8 2.8-1.1L19 9.1 14.9 5z', 'M13.5 6.4l4.1 4.1'])
         case 'chevron':
           return paths(['M9 6l6 6-6 6'])
+        case 'image':
+          return h('svg', base, [
+            h('rect', { key: 'r', x: 3.4, y: 4.4, width: 17.2, height: 15.2, rx: 2.2 }),
+            h('circle', { key: 'c', cx: 8.6, cy: 9.6, r: 1.6 }),
+            h('path', { key: 'm', d: 'M4 17.4l4.6-4.6 3.4 3.4 3-2.8 4.6 4.2' }),
+          ])
+        case 'globe':
+          return h('svg', base, [
+            h('circle', { key: 'c', cx: 12, cy: 12, r: 8.4 }),
+            h('path', { key: 'e', d: 'M3.6 12h16.8' }),
+            h('path', { key: 'v', d: 'M12 3.6c2.4 2.4 3.6 5.2 3.6 8.4s-1.2 6-3.6 8.4c-2.4-2.4-3.6-5.2-3.6-8.4s1.2-6 3.6-8.4z' }),
+          ])
+        case 'pdf':
+          return h('svg', base, [
+            h('path', { key: 'a', d: 'M6.2 3.2h7.2l4.4 4.4v13.2H6.2z' }),
+            h('path', { key: 'b', d: 'M13.2 3.4v4.4h4.4' }),
+            h('path', { key: 'p', d: 'M9.6 17.4v-4.6h1.9a1.7 1.7 0 0 1 0 3.4H9.6' }),
+          ])
+        case 'audio':
+          return h('svg', base, [
+            h('path', { key: 's', d: 'M9 17.4V6.4l8-2v11' }),
+            h('circle', { key: 'a', cx: 6.8, cy: 17.6, r: 2.2 }),
+            h('circle', { key: 'b', cx: 14.8, cy: 15.6, r: 2.2 }),
+          ])
+        case 'video':
+          return h('svg', base, [
+            h('rect', { key: 'r', x: 3.4, y: 5.6, width: 12.2, height: 12.8, rx: 2 }),
+            h('path', { key: 'p', d: 'M15.8 12.4l4.6-3v5.2z' }),
+          ])
+        case 'code':
+          return paths(['M9 8l-4 4 4 4', 'M15 8l4 4-4 4', 'M13.2 6.4l-2.4 11.2'])
+        case 'external':
+          return h('svg', base, [
+            h('path', { key: 'a', d: 'M14 4h6v6' }),
+            h('path', { key: 'b', d: 'M20 4l-9 9' }),
+            h('path', { key: 'c', d: 'M18 14.4V18a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 18V7.8A1.8 1.8 0 0 1 5.8 6H10' }),
+          ])
+        case 'download':
+          return paths(['M12 4v10', 'M8 10.4l4 4 4-4', 'M5 19h14'])
         default:
           return paths(['M12 5v14', 'M5 12h14'])
       }
@@ -1227,9 +1408,30 @@ window.__ModuleLoader__.load({
 
     /* ----------------------------------------------------------- markdown */
 
-    function renderInline(text, keyPrefix) {
+    function resolveAssetPath(baseDir, rawSrc) {
+      if (!baseDir) return ''
+      let src = String(rawSrc || '')
+      try {
+        src = decodeURIComponent(src)
+      } catch {
+        /* keep the raw text when percent-decoding fails */
+      }
+      if (src === '' || /^[a-z][\w+.-]*:/i.test(src) || src.startsWith('//')) return ''
+      if (/^[A-Za-z]:[\\/]/u.test(src) || src.startsWith('/')) return ''
+      const parts = baseDir.split(/[\\/]/u).filter((part) => part !== '')
+      for (const segment of src.split(/[\\/]/u)) {
+        if (segment === '' || segment === '.') continue
+        if (segment === '..') parts.pop()
+        else parts.push(segment)
+      }
+      const separator = baseDir.includes('\\') ? '\\' : '/'
+      const joined = parts.join(separator)
+      return baseDir.startsWith('/') ? `${separator}${joined}` : joined
+    }
+
+    function renderInline(text, keyPrefix, imageBase) {
       const nodes = []
-      const pattern = /(`[^`\n]+`)|(\*\*[^*\n]+\*\*)|(\*[^*\n]+\*)|(\[[^\]\n]+\]\([^)\s]+\))/g
+      const pattern = /(!\[[^\]\n]*\]\([^)\s]+\))|(`[^`\n]+`)|(\*\*[^*\n]+\*\*)|(\*[^*\n]+\*)|(\[[^\]\n]+\]\([^)\s]+\))/g
       let cursor = 0
       let counter = 0
       let match
@@ -1237,7 +1439,15 @@ window.__ModuleLoader__.load({
         if (match.index > cursor) nodes.push(text.slice(cursor, match.index))
         const token = match[0]
         const key = `${keyPrefix}-${counter++}`
-        if (token.startsWith('`')) nodes.push(h('code', { key, className: 'dsd-md-inline-code' }, token.slice(1, -1)))
+        if (token.startsWith('![')) {
+          const image = /^!\[([^\]]*)\]\(([^)]+)\)$/u.exec(token)
+          const alt = image ? image[1] : ''
+          const rawSrc = image ? image[2] : ''
+          const remote = /^(https?:|data:|blob:)/i.test(rawSrc)
+          const resolved = remote ? rawSrc : resolveAssetPath(imageBase, rawSrc)
+          if (resolved) nodes.push(h('img', { key, className: 'dsd-md-image', src: remote ? resolved : fileUrl(resolved), alt, title: alt, loading: 'lazy' }))
+          else nodes.push(token)
+        } else if (token.startsWith('`')) nodes.push(h('code', { key, className: 'dsd-md-inline-code' }, token.slice(1, -1)))
         else if (token.startsWith('**')) nodes.push(h('strong', { key }, token.slice(2, -2)))
         else if (token.startsWith('*')) nodes.push(h('em', { key }, token.slice(1, -1)))
         else {
@@ -1278,17 +1488,18 @@ window.__ModuleLoader__.load({
       })
     }
 
-    function renderMarkdown(source, baseKey) {
+    function renderMarkdown(source, baseKey, imageBase) {
       const lines = String(source ?? '').replace(/^\uFEFF/u, '').replace(/\r\n?/g, '\n').split('\n')
       const blocks = []
       let index = 0
       let key = 0
       let paragraph = []
       const prefix = baseKey || 'md'
+      const inline = (text, prefixKey) => renderInline(text, prefixKey, imageBase)
       const flush = () => {
         if (paragraph.length === 0) return
         const text = paragraph.join(' ')
-        blocks.push(h('p', { key: `${prefix}-p${key++}`, className: 'dsd-md-p' }, renderInline(text, `${prefix}-p${key}`)))
+        blocks.push(h('p', { key: `${prefix}-p${key++}`, className: 'dsd-md-p' }, inline(text, `${prefix}-p${key}`)))
         paragraph = []
       }
       while (index < lines.length) {
@@ -1326,7 +1537,7 @@ window.__ModuleLoader__.load({
         if (heading) {
           flush()
           const level = Math.min(6, heading[1].length)
-          blocks.push(h(`h${level}`, { key: `${prefix}-h${key++}`, className: 'dsd-md-heading' }, renderInline(heading[2], `${prefix}-h${key}`)))
+          blocks.push(h(`h${level}`, { key: `${prefix}-h${key++}`, className: 'dsd-md-heading' }, inline(heading[2], `${prefix}-h${key}`)))
           index += 1
           continue
         }
@@ -1363,7 +1574,7 @@ window.__ModuleLoader__.load({
                       h(
                         'th',
                         { key: `${prefix}-th${column}`, style: alignments[column] ? { textAlign: alignments[column] } : undefined },
-                        renderInline(cell, `${prefix}-th${column}`),
+                        inline(cell, `${prefix}-th${column}`),
                       ),
                     ),
                   ),
@@ -1379,7 +1590,7 @@ window.__ModuleLoader__.load({
                         h(
                           'td',
                           { key: `${prefix}-td${rowIndex}-${column}`, style: alignments[column] ? { textAlign: alignments[column] } : undefined },
-                          renderInline(row[column] ?? '', `${prefix}-td${rowIndex}-${column}`),
+                          inline(row[column] ?? '', `${prefix}-td${rowIndex}-${column}`),
                         ),
                       ),
                     ),
@@ -1397,14 +1608,14 @@ window.__ModuleLoader__.load({
             quote.push(lines[index].replace(/^>\s?/, ''))
             index += 1
           }
-          blocks.push(h('blockquote', { key: `${prefix}-q${key++}`, className: 'dsd-md-quote' }, renderInline(quote.join(' '), `${prefix}-q${key}`)))
+          blocks.push(h('blockquote', { key: `${prefix}-q${key++}`, className: 'dsd-md-quote' }, inline(quote.join(' '), `${prefix}-q${key}`)))
           continue
         }
         if (/^[-*+]\s+/.test(line)) {
           flush()
           const items = []
           while (index < lines.length && /^[-*+]\s+/.test(lines[index])) {
-            items.push(h('li', { key: `${prefix}-li${key++}` }, renderInline(lines[index].replace(/^[-*+]\s+/, ''), `${prefix}-li${key}`)))
+            items.push(h('li', { key: `${prefix}-li${key++}` }, inline(lines[index].replace(/^[-*+]\s+/, ''), `${prefix}-li${key}`)))
             index += 1
           }
           blocks.push(h('ul', { key: `${prefix}-ul${key++}`, className: 'dsd-md-list' }, items))
@@ -1414,7 +1625,7 @@ window.__ModuleLoader__.load({
           flush()
           const items = []
           while (index < lines.length && /^\d+[.)]\s+/.test(lines[index])) {
-            items.push(h('li', { key: `${prefix}-li${key++}` }, renderInline(lines[index].replace(/^\d+[.)]\s+/, ''), `${prefix}-li${key}`)))
+            items.push(h('li', { key: `${prefix}-li${key++}` }, inline(lines[index].replace(/^\d+[.)]\s+/, ''), `${prefix}-li${key}`)))
             index += 1
           }
           blocks.push(h('ol', { key: `${prefix}-ol${key++}`, className: 'dsd-md-list' }, items))
@@ -1853,6 +2064,11 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-glyph { position:relative; display:flex; align-items:center; justify-content:center; width:54px; height:54px; border-radius:14px; flex:none; }
 .dsd-glyph[data-kind=file] { background:var(--dsw-alias-bg-layer-1,#f6f6f8); border:1px solid var(--dsw-alias-border-l1,#e4e4ea); color:var(--dsw-alias-label-primary,#1b1b1f); }
 .dsd-glyph[data-kind=folder] { background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 15%, var(--dsw-alias-bg-layer-1,#f6f6f8)); border:1px solid color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 30%, transparent); color:var(--dsw-alias-state-business-primary,#2f6fed); }
+.dsd-glyph[data-type=text] { color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-glyph[data-type=image] { color:var(--dsw-alias-state-success-primary,#2e9e6b); }
+.dsd-glyph[data-type=html] { color:var(--dsw-alias-state-business-primary,#2f6fed); }
+.dsd-glyph[data-type=pdf] { color:var(--dsw-alias-state-error-primary,#c62f45); }
+.dsd-glyph[data-type=audio], .dsd-glyph[data-type=video] { color:var(--dsw-alias-state-warn-primary,#b06a00); }
 .dsd-badge { position:absolute; right:-5px; bottom:-5px; min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:var(--dsw-alias-state-business-primary,#2f6fed); color:var(--dsw-alias-label-primary-foreground,#0f1115); font-size:10px; line-height:17px; font-weight:700; text-align:center; }
 .dsd-label { font-size:11.5px; line-height:1.3; text-align:center; max-width:84px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-word; color:var(--dsw-alias-label-primary,#1b1b1f); }
 .dsd-rename-input { width:82px; height:23px; padding:1px 3px; border-radius:6px; border:1px solid var(--dsw-alias-state-business-primary,#2f6fed); background:var(--dsw-alias-bg-base,#fff); color:inherit; font:inherit; font-size:11.5px; text-align:center; outline:none; }
@@ -1940,6 +2156,7 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-md-list li { margin:.22em 0; }
 .dsd-md-pre { margin:.9em 0; padding:11px 13px; border-radius:8px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#f0f0f4); overflow:auto; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.58; tab-size:2; }
 .dsd-md-inline-code { padding:1px 5px; border-radius:5px; background:var(--dsw-alias-bg-layer-2,#f0f0f4); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.9em; }
+.dsd-md-image { display:block; max-width:100%; height:auto; margin:8px 0; border-radius:8px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); }
 .dsd-md-quote { margin:.8em 0; padding:2px 0 2px 12px; border-left:3px solid var(--dsw-alias-border-l2,#d0d0d8); color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-md-hr { height:1px; margin:1.3em 0; border:none; background:var(--dsw-alias-border-l1,#e4e4ea); }
 .dsd-chart { margin:1.2em 0 1.5em; padding:12px 14px 8px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); border-radius:12px; background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#f6f6f8) 55%, transparent); }
@@ -1966,6 +2183,26 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-md-table tbody tr:nth-child(even) td { background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 3%, transparent); }
 .dsd-doc-body a { color:var(--dsw-alias-state-business-primary,#2f6fed); text-decoration:none; }
 .dsd-doc-body a:hover { text-decoration:underline; }
+.dsd-doc-inner[data-wide=true] { max-width:1180px; }
+.dsd-panel[data-immersive="true"] .dsd-doc-inner[data-wide=true] { max-width:none; }
+.dsd-doc-text { margin:0; padding:13px 15px; border-radius:10px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#f0f0f4); overflow:auto; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px; line-height:1.65; white-space:pre-wrap; word-break:break-word; tab-size:2; }
+.dsd-media { display:flex; flex-direction:column; align-items:center; gap:10px; padding:4px 0 20px; }
+.dsd-media[data-zoom=true] { align-items:flex-start; }
+.dsd-media-image { display:block; max-width:100%; max-height:calc(100vh - 300px); object-fit:contain; border-radius:10px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:repeating-conic-gradient(color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 4%, transparent) 0% 25%, transparent 0% 50%) 50%/18px 18px; cursor:zoom-in; }
+.dsd-media-image[data-zoom=true] { max-width:none; max-height:none; cursor:zoom-out; }
+.dsd-media-badge { display:flex; align-items:center; justify-content:center; width:76px; height:76px; border-radius:20px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 10%, var(--dsw-alias-bg-layer-1,#f6f6f8)); color:var(--dsw-alias-state-business-primary,#2f6fed); }
+.dsd-media-title { font-size:13px; font-weight:600; text-align:center; word-break:break-all; }
+.dsd-media-note { max-width:620px; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; line-height:1.6; text-align:center; }
+.dsd-audio { width:min(560px,100%); }
+.dsd-video { width:min(960px,100%); max-height:calc(100vh - 320px); border-radius:10px; background:#000; }
+.dsd-embed { display:flex; flex-direction:column; gap:8px; }
+.dsd-embed-note { display:flex; align-items:center; gap:6px; padding:6px 9px; border-radius:8px; border:1px dashed var(--dsw-alias-border-l2,#d0d0d8); color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; line-height:1.5; }
+.dsd-embed-note > svg { flex:none; }
+.dsd-doc-frame { width:100%; height:calc(100vh - 320px); min-height:420px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); border-radius:10px; background:#fff; }
+.dsd-pdf-frame { height:calc(100vh - 300px); min-height:520px; }
+.dsd-filecard { display:flex; flex-direction:column; align-items:center; gap:10px; padding:34px 20px; border:1px dashed var(--dsw-alias-border-l2,#d0d0d8); border-radius:14px; text-align:center; }
+.dsd-filecard-meta { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-filecard-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:4px; }
 .dsd-menu { position:fixed; z-index:2000; min-width:196px; max-width:264px; max-height:min(72vh,420px); overflow:auto; padding:5px; border-radius:10px; background:var(--dsw-alias-bg-layer-2,#fff); border:1px solid var(--dsw-alias-border-l1,#e4e4ea); box-shadow:0 14px 36px rgba(0,0,0,.2); animation:dsd-pop .12s ease-out; }
 .dsd-menu-title { padding:6px 9px 4px; font-size:11px; font-weight:700; color:var(--dsw-alias-label-secondary,#6b6b76); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dsd-menu-item { display:flex; align-items:center; gap:8px; width:100%; padding:7px 9px; border:none; border-radius:7px; background:transparent; color:var(--dsw-alias-label-primary,#1b1b1f); font:inherit; font-size:12.5px; text-align:left; cursor:pointer; }
@@ -1994,6 +2231,16 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-picker-path { font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dsd-picker-meta { flex:none; margin-left:8px; font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); white-space:nowrap; }
 .dsd-picker-added { flex:none; margin-left:8px; font-size:10.5px; color:var(--dsw-alias-state-success-primary,#2e9e6b); }
+.dsd-picker-kind { flex:none; min-width:40px; padding:1px 5px; border-radius:5px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 4%, transparent); color:var(--dsw-alias-label-secondary,#6b6b76); font-size:9px; font-weight:700; letter-spacing:.3px; text-align:center; }
+.dsd-picker-kind[data-kind=markdown] { color:var(--dsw-alias-label-primary,#1b1b1f); }
+.dsd-picker-kind[data-kind=image] { color:var(--dsw-alias-state-success-primary,#2e9e6b); }
+.dsd-picker-kind[data-kind=html] { color:var(--dsw-alias-state-business-primary,#2f6fed); }
+.dsd-picker-kind[data-kind=pdf] { color:var(--dsw-alias-state-error-primary,#c62f45); }
+.dsd-picker-kind[data-kind=audio], .dsd-picker-kind[data-kind=video] { color:var(--dsw-alias-state-warn-primary,#b06a00); }
+.dsd-picker-filters { flex:none; display:flex; flex-wrap:wrap; gap:5px; padding:0 16px 8px; }
+.dsd-filter { height:24px; padding:0 10px; border-radius:999px; border:1px solid var(--dsw-alias-border-l2,#d0d0d8); background:transparent; color:var(--dsw-alias-label-secondary,#6b6b76); font:inherit; font-size:11px; cursor:pointer; }
+.dsd-filter:hover { color:var(--dsw-alias-label-primary,#1b1b1f); background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 7%, transparent); }
+.dsd-filter[data-active=true] { color:var(--dsw-alias-state-business-primary,#2f6fed); border-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 38%, transparent); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 11%, transparent); }
 .dsd-picker-status { padding:26px 12px; text-align:center; font-size:12.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-picker-foot { flex:none; display:flex; align-items:center; gap:10px; padding:10px 16px; border-top:1px solid var(--dsw-alias-border-l1,#e4e4ea); }
 .dsd-picker-foot-meta { flex:1; min-width:0; font-size:11px; color:var(--dsw-alias-label-secondary,#6b6b76); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -2088,8 +2335,8 @@ body.dsd-immersive { overflow:hidden !important; }
           const response = await fetch(`${API_RESOLVE}?${query}`, { credentials: 'same-origin' })
           const body = await response.json().catch(() => null)
           if (!response.ok || !body || typeof body.path !== 'string') throw new Error('resolve')
-          if (!/\.(md|markdown|mdx)$/iu.test(body.path)) {
-            setStatus('not-markdown')
+          if (fileKind(body.path) === 'unknown') {
+            setStatus('unsupported')
             return
           }
           const added = store.addFiles([{ path: body.path, name: body.name || basename(body.path) }], null)
@@ -2140,8 +2387,8 @@ body.dsd-immersive { overflow:hidden !important; }
             ? t('context.added')
             : status === 'failed'
               ? t('context.failed')
-              : status === 'not-markdown'
-                ? t('context.notMarkdown')
+              : status === 'unsupported'
+                ? t('context.unsupported')
                 : t('context.addToLibrary')
 
       return h(
@@ -2194,9 +2441,10 @@ body.dsd-immersive { overflow:hidden !important; }
       const [marquee, setMarquee] = useState(null)
       const [dropFolder, setDropFolder] = useState(null)
       const [dropSlot, setDropSlot] = useState(null)
-      const [picker, setPicker] = useState({ open: false, status: 'idle', files: [], roots: [], truncated: false, partial: false, error: null, query: '', selected: new Set() })
+      const [picker, setPicker] = useState({ open: false, status: 'idle', files: [], roots: [], truncated: false, partial: false, error: null, query: '', filter: 'all', selected: new Set() })
       const [doc, setDoc] = useState({ status: 'idle' })
       const [docReload, setDocReload] = useState(0)
+      const [imageZoom, setImageZoom] = useState(false)
       const [search, setSearch] = useState('')
       const [toast, setToast] = useState(null)
       const [confirmState, setConfirmState] = useState(null)
@@ -2442,6 +2690,10 @@ body.dsd-immersive { overflow:hidden !important; }
 
       const activePath = library.activeTab === 'home' ? null : library.activeTab
       const activeItem = activePath ? library.items[activePath] : null
+      const docReady = doc.status === 'ready' && doc.path === activePath
+      const activeKind = activePath ? (docReady && typeof doc.kind === 'string' ? doc.kind : fileKind(activePath)) : null
+      const bookmarkable = activeKind === 'markdown'
+      const readable = activeKind === 'markdown' || activeKind === 'text'
       const lastPosition = activePath ? bookmarkStore.getState().positions[activePath] || null : null
       const activeBookmarks = useMemo(() => {
         if (!activePath) return []
@@ -2455,7 +2707,7 @@ body.dsd-immersive { overflow:hidden !important; }
       }, [lastPosition, activeBookmarks])
 
       useEffect(() => {
-        if (!activePath || doc.status !== 'ready') return
+        if (!activePath || !docReady || activeKind !== 'markdown') return
         const body = docScrollRef.current ? docScrollRef.current.querySelector('.dsd-doc-body') : null
         if (!body) return
         const selectedBlocks = new Set(lineHighlights[activePath] || [])
@@ -2536,12 +2788,12 @@ body.dsd-immersive { overflow:hidden !important; }
       }, [flashBlock])
 
       const addBookmark = useCallback(() => {
-        if (!activePath || doc.status !== 'ready') return
+        if (!activePath || !docReady || activeKind !== 'markdown') return
         const position = captureDocPosition()
         if (!position) return
         bookmarkStore.addBookmark(activePath, position)
         showToast(t('bookmarks.added'))
-      }, [activePath, doc.status, captureDocPosition, showToast])
+      }, [activePath, docReady, activeKind, captureDocPosition, showToast])
 
       const positionForBlock = useCallback((block, body, scroll) => {
         if (!block || !body || !scroll) return null
@@ -2570,7 +2822,7 @@ body.dsd-immersive { overflow:hidden !important; }
       }, [])
 
       const onDocContextMenu = useCallback((event) => {
-        if (!activePath || doc.status !== 'ready') return
+        if (!activePath || !docReady || activeKind !== 'markdown') return
         const body = event.currentTarget
         const target = event.target
         const block = Array.from(body.children).find((child) => child === target || child.contains(target))
@@ -2587,7 +2839,7 @@ body.dsd-immersive { overflow:hidden !important; }
           y: clamp(event.clientY, 8, window.innerHeight - 150),
           position,
         })
-      }, [activePath, doc.status, positionForBlock])
+      }, [activePath, docReady, activeKind, positionForBlock])
 
       useEffect(() => {
         if (!docMenu) return undefined
@@ -2601,19 +2853,19 @@ body.dsd-immersive { overflow:hidden !important; }
       }, [docMenu])
 
       const handleDocScroll = useCallback(() => {
-        if (!activePath || !readingReadyRef.current || Date.now() < positionSaveBlockedUntil.current) return
+        if (!activePath || !readable || !readingReadyRef.current || Date.now() < positionSaveBlockedUntil.current) return
         window.clearTimeout(docScrollSaveTimer.current)
         docScrollSaveTimer.current = window.setTimeout(() => {
-          if (!activePath || !readingReadyRef.current || Date.now() < positionSaveBlockedUntil.current) return
+          if (!activePath || !readable || !readingReadyRef.current || Date.now() < positionSaveBlockedUntil.current) return
           const position = captureDocPosition()
           if (position) bookmarkStore.savePosition(activePath, position)
         }, 250)
-      }, [activePath, captureDocPosition])
+      }, [activePath, readable, captureDocPosition])
 
       useEffect(() => {
         readingReadyRef.current = false
         window.clearTimeout(docScrollSaveTimer.current)
-        if (!activePath || doc.status !== 'ready') return undefined
+        if (!activePath || !docReady) return undefined
         const timer = window.setTimeout(() => {
           readingReadyRef.current = true
         }, 500)
@@ -2621,7 +2873,7 @@ body.dsd-immersive { overflow:hidden !important; }
           window.clearTimeout(timer)
           readingReadyRef.current = false
         }
-      }, [activePath, doc.status])
+      }, [activePath, docReady])
 
       useEffect(() => {
         setBookmarksOpen(false)
@@ -2766,6 +3018,10 @@ body.dsd-immersive { overflow:hidden !important; }
             status: 'ready',
             path: GUIDE_PATH,
             name: t('guide.name'),
+            kind: 'markdown',
+            ext: 'md',
+            mime: 'text/markdown',
+            url: null,
             content: GUIDE_MARKDOWN,
             truncated: false,
             size: GUIDE_MARKDOWN.length,
@@ -2781,11 +3037,15 @@ body.dsd-immersive { overflow:hidden !important; }
         fetch(`${API_READ}?path=${encodeURIComponent(activePath)}`, { signal: controller.signal, credentials: 'same-origin' })
           .then(async (response) => {
             const body = await response.json().catch(() => null)
-            if (!response.ok) throw new Error(body && body.error ? body.error : `HTTP ${response.status}`)
+            if (!response.ok) throw new Error(body && body.error === 'unsupported-type' ? t('error.unsupported') : body && body.error ? body.error : `HTTP ${response.status}`)
             const next = {
               status: 'ready',
-              path: body.path || activePath,
+              path: activePath,
               name: body.name || basename(activePath),
+              kind: typeof body.kind === 'string' ? body.kind : fileKind(activePath),
+              ext: typeof body.ext === 'string' ? body.ext : fileExt(activePath),
+              mime: typeof body.mime === 'string' ? body.mime : '',
+              url: typeof body.url === 'string' && body.url !== '' ? body.url : fileUrl(body.path || activePath),
               content: body.content || '',
               truncated: Boolean(body.truncated),
               size: body.size,
@@ -2800,6 +3060,17 @@ body.dsd-immersive { overflow:hidden !important; }
           })
         return () => controller.abort()
       }, [activePath, docReload])
+
+      useEffect(() => {
+        setImageZoom(false)
+      }, [activePath])
+
+      useEffect(() => {
+        if (bookmarkable) return
+        setBookmarksOpen(false)
+        setBookmarkEdit(null)
+        setDocMenu(null)
+      }, [bookmarkable])
 
       const reloadDoc = useCallback(() => {
         if (!activePath) return
@@ -2826,7 +3097,7 @@ body.dsd-immersive { overflow:hidden !important; }
 
       const openPicker = useCallback(async () => {
         const token = (pickerToken.current += 1)
-        setPicker({ open: true, status: 'loading', files: [], roots: [], truncated: false, partial: false, error: null, query: '', selected: new Set() })
+        setPicker({ open: true, status: 'loading', files: [], roots: [], truncated: false, partial: false, error: null, query: '', filter: 'all', selected: new Set() })
         try {
           const response = await fetch(`${API_LIST}?refresh=1`, { credentials: 'same-origin' })
           const body = await response.json().catch(() => null)
@@ -3473,7 +3744,7 @@ body.dsd-immersive { overflow:hidden !important; }
             toggleImmersive()
             return
           }
-          if ((event.key === 'b' || event.key === 'B') && !event.repeat && !editing && panelVisible && activePath && doc.status === 'ready' && !picker.open && !renaming && !confirmState && !menu && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          if ((event.key === 'b' || event.key === 'B') && !event.repeat && !editing && panelVisible && activePath && activeKind === 'markdown' && docReady && !picker.open && !renaming && !confirmState && !menu && !event.ctrlKey && !event.metaKey && !event.altKey) {
             event.preventDefault()
             addBookmark()
             return
@@ -3517,7 +3788,7 @@ body.dsd-immersive { overflow:hidden !important; }
         }
         document.addEventListener('keydown', onKey)
         return () => document.removeEventListener('keydown', onKey)
-      }, [menu, renaming, confirmState, picker.open, selected, library.activeTab, deleteSelection, closePicker, immersive, toggleImmersive, exitImmersive, bookmarksOpen, docMenu, activePath, doc.status, addBookmark])
+      }, [menu, renaming, confirmState, picker.open, selected, library.activeTab, deleteSelection, closePicker, immersive, toggleImmersive, exitImmersive, bookmarksOpen, docMenu, activePath, activeKind, docReady, addBookmark])
 
       const chain = useMemo(() => folderChain(library.folders, currentFolder), [library.folders, currentFolder])
       const pathSegments = useMemo(() => {
@@ -3573,11 +3844,14 @@ body.dsd-immersive { overflow:hidden !important; }
 
       const pickerRows = useMemo(() => {
         const query = picker.query.trim().toLowerCase()
+        const filter = picker.filter
         return picker.files.filter((file) => {
+          const kind = typeof file.kind === 'string' && file.kind !== '' ? file.kind : fileKind(file.path)
+          if (filter !== 'all' && fileKindGroup(kind) !== filter) return false
           if (!query) return true
           return file.name.toLowerCase().includes(query) || file.rel.toLowerCase().includes(query) || file.rootTitle.toLowerCase().includes(query)
         })
-      }, [picker.files, picker.query])
+      }, [picker.files, picker.query, picker.filter])
 
       const togglePicked = useCallback(
         (path) => {
@@ -3598,6 +3872,8 @@ body.dsd-immersive { overflow:hidden !important; }
           const query = previous.query.trim().toLowerCase()
           for (const file of previous.files) {
             if (library.items[file.path]) continue
+            const kind = typeof file.kind === 'string' && file.kind !== '' ? file.kind : fileKind(file.path)
+            if (previous.filter !== 'all' && fileKindGroup(kind) !== previous.filter) continue
             if (query && !(file.name.toLowerCase().includes(query) || file.rel.toLowerCase().includes(query) || file.rootTitle.toLowerCase().includes(query))) continue
             selectedSet.add(file.path)
           }
@@ -3619,7 +3895,7 @@ body.dsd-immersive { overflow:hidden !important; }
         return h(
           'button',
           { key: tab, className: 'dsd-tab', type: 'button', 'data-active': library.activeTab === tab ? 'true' : 'false', title: tab, onClick: () => store.setActive(tab) },
-          icon('doc', 13),
+          icon(fileKindIcon(tab), 13),
           h('span', { className: 'dsd-tab-label' }, item.name || basename(tab)),
           h(
             'span',
@@ -3750,8 +4026,8 @@ body.dsd-immersive { overflow:hidden !important; }
           },
           h(
             'div',
-            { className: 'dsd-glyph', 'data-kind': entry.kind },
-            icon(entry.kind === 'folder' ? 'folder' : 'doc', 30),
+            { className: 'dsd-glyph', 'data-kind': entry.kind, 'data-type': entry.kind === 'file' ? fileKind(entry.path) : undefined },
+            icon(entry.kind === 'folder' ? 'folder' : fileKindIcon(entry.path), 30),
             entry.kind === 'folder' && entry.count > 0 ? h('span', { className: 'dsd-badge' }, entry.count > 99 ? '99+' : String(entry.count)) : null,
           ),
           isRenaming
@@ -4265,45 +4541,175 @@ body.dsd-immersive { overflow:hidden !important; }
 
       const renderDoc = () => {
         if (!activeItem) return null
+        const kind = activeKind || 'markdown'
+        const canRead = kind === 'markdown' || kind === 'text'
+        const pathSeparator = Math.max(activePath.lastIndexOf('\\'), activePath.lastIndexOf('/'))
+        const docDir = activePath === GUIDE_PATH || pathSeparator <= 0 ? '' : activePath.slice(0, pathSeparator)
+        const docUrl = docReady && doc.url ? doc.url : fileUrl(activePath)
+        const mediaUrl = versionedUrl(docUrl, docReload)
+        const kindLabel = (KIND_CHIP[kind] || fileExt(activePath).toUpperCase() || 'FILE')
+        const meta = `${kindLabel} · ${formatSize(docReady ? doc.size : 0)} · ${formatTime(doc.mtime)}`
+        const openExternal = () => {
+          try {
+            window.open(mediaUrl, '_blank', 'noopener')
+          } catch {
+            /* popup blocked */
+          }
+        }
+        const download = () => {
+          try {
+            window.open(fileUrl(activePath, true), '_blank', 'noopener')
+          } catch {
+            /* popup blocked */
+          }
+        }
+        const pathButton = (name, title, onClick, active) =>
+          h(
+            'button',
+            {
+              className: 'dsd-btn',
+              type: 'button',
+              'data-quiet': true,
+              'data-active': active ? 'true' : 'false',
+              title,
+              'aria-label': title,
+              onClick,
+            },
+            icon(name, 14),
+          )
+        const renderReady = () => {
+          if (kind === 'markdown' || kind === 'text') {
+            const empty = doc.content.trim() === ''
+            return h(
+              'div',
+              { className: 'dsd-doc-body', 'data-kind': kind, onContextMenu: kind === 'markdown' ? onDocContextMenu : undefined },
+              doc.truncated ? h('div', { className: 'dsd-doc-note' }, t('doc.truncated')) : null,
+              empty
+                ? h('div', { className: 'dsd-doc-empty' }, t('doc.empty'))
+                : kind === 'markdown'
+                  ? renderMarkdown(doc.content, 'doc', docDir)
+                  : h('pre', { className: 'dsd-doc-text' }, doc.content),
+            )
+          }
+          if (kind === 'image') {
+            return h(
+              'div',
+              { className: 'dsd-media', 'data-zoom': imageZoom ? 'true' : 'false' },
+              h('img', {
+                className: 'dsd-media-image',
+                src: mediaUrl,
+                alt: doc.name || basename(activePath),
+                'data-zoom': imageZoom ? 'true' : 'false',
+                title: imageZoom ? t('doc.imageZoomOut') : t('doc.imageZoomIn'),
+                onClick: () => setImageZoom((value) => !value),
+              }),
+              h('div', { className: 'dsd-media-note' }, t('doc.imageHint')),
+            )
+          }
+          if (kind === 'html') {
+            return h(
+              'div',
+              { className: 'dsd-embed' },
+              h('div', { className: 'dsd-embed-note' }, icon('globe', 13), h('span', null, t('doc.htmlHint'))),
+              h('iframe', {
+                key: `${activePath}-${docReload}`,
+                className: 'dsd-doc-frame',
+                src: mediaUrl,
+                sandbox: 'allow-scripts allow-popups allow-modals allow-downloads',
+                referrerPolicy: 'no-referrer',
+                title: doc.name || basename(activePath),
+              }),
+            )
+          }
+          if (kind === 'pdf') {
+            return h(
+              'div',
+              { className: 'dsd-embed' },
+              h('div', { className: 'dsd-embed-note' }, icon('pdf', 13), h('span', null, t('doc.pdfHint'))),
+              h('iframe', {
+                key: `${activePath}-${docReload}`,
+                className: 'dsd-doc-frame dsd-pdf-frame',
+                src: mediaUrl,
+                title: doc.name || basename(activePath),
+              }),
+            )
+          }
+          if (kind === 'audio') {
+            return h(
+              'div',
+              { className: 'dsd-media' },
+              h('div', { className: 'dsd-media-badge' }, icon('audio', 38)),
+              h('div', { className: 'dsd-media-title' }, doc.name || basename(activePath)),
+              h('div', { className: 'dsd-media-note' }, t('doc.audioHint')),
+              h('audio', { className: 'dsd-audio', src: mediaUrl, controls: true, preload: 'metadata' }),
+            )
+          }
+          if (kind === 'video') {
+            return h(
+              'div',
+              { className: 'dsd-media' },
+              h('video', { className: 'dsd-video', src: mediaUrl, controls: true, preload: 'metadata', playsInline: true }),
+              h('div', { className: 'dsd-media-note' }, t('doc.videoHint')),
+            )
+          }
+          return h(
+            'div',
+            { className: 'dsd-filecard' },
+            h('div', { className: 'dsd-media-badge' }, icon(fileKindIcon(activePath), 38)),
+            h('div', { className: 'dsd-media-title' }, doc.name || basename(activePath)),
+            h('div', { className: 'dsd-media-note' }, t('doc.unsupported')),
+            h('div', { className: 'dsd-filecard-meta' }, meta),
+            h(
+              'div',
+              { className: 'dsd-filecard-actions' },
+              h('button', { className: 'dsd-btn', type: 'button', onClick: openExternal }, icon('external', 14), h('span', null, t('doc.openExternal'))),
+              h('button', { className: 'dsd-btn', type: 'button', onClick: download }, icon('download', 14), h('span', null, t('doc.download'))),
+            ),
+          )
+        }
         return h(
           'div',
           { className: 'dsd-doc' },
-          h(
-            'div',
-            { className: 'dsd-readbar', 'data-empty': lastPosition ? 'false' : 'true' },
-            icon('bookmark', 14),
-            lastPosition
-              ? h(React.Fragment, null,
-                  h('strong', { className: 'dsd-readbar-title' }, t('bookmarks.lastRead')),
-                  h('span', { className: 'dsd-readbar-meta' }, t('bookmarks.lastReadAt', { percent: Math.round(lastPosition.ratio * 100), time: formatTime(lastPosition.updatedAt) })),
-                  lastPosition.label ? h('span', { className: 'dsd-readbar-label' }, lastPosition.label) : null,
-                )
-              : h('span', { className: 'dsd-readbar-label' }, t('bookmarks.noLast')),
-            h('span', { className: 'dsd-readbar-spacer' }),
-            lastPosition
-              ? h(
-                  'button',
-                  { className: 'dsd-btn', type: 'button', 'data-primary': true, onClick: () => jumpToPosition(lastPosition) },
-                  h('span', null, t('bookmarks.resume')),
-                )
-              : null,
-            h(
-              'button',
-              {
-                className: 'dsd-btn dsd-bookmark-toggle',
-                type: 'button',
-                'data-quiet': true,
-                'data-dsd-bookmark-toggle': 'true',
-                'data-active': bookmarksOpen ? 'true' : 'false',
-                title: t('bookmarks.open'),
-                'aria-label': t('bookmarks.open'),
-                onClick: () => setBookmarksOpen((previous) => !previous),
-              },
-              icon('bookmark', 15),
-              h('span', { className: 'dsd-bookmark-toggle-label' }, t('bookmarks.title')),
-              activeBookmarks.length > 0 ? h('span', { className: 'dsd-bookmark-count' }, activeBookmarks.length > 99 ? '99+' : String(activeBookmarks.length)) : null,
-            ),
-          ),
+          canRead
+            ? h(
+                'div',
+                { className: 'dsd-readbar', 'data-empty': lastPosition ? 'false' : 'true' },
+                icon('bookmark', 14),
+                lastPosition
+                  ? h(React.Fragment, null,
+                      h('strong', { className: 'dsd-readbar-title' }, t('bookmarks.lastRead')),
+                      h('span', { className: 'dsd-readbar-meta' }, t('bookmarks.lastReadAt', { percent: Math.round(lastPosition.ratio * 100), time: formatTime(lastPosition.updatedAt) })),
+                      lastPosition.label ? h('span', { className: 'dsd-readbar-label' }, lastPosition.label) : null,
+                    )
+                  : h('span', { className: 'dsd-readbar-label' }, t('bookmarks.noLast')),
+                h('span', { className: 'dsd-readbar-spacer' }),
+                lastPosition
+                  ? h(
+                      'button',
+                      { className: 'dsd-btn', type: 'button', 'data-primary': true, onClick: () => jumpToPosition(lastPosition) },
+                      h('span', null, t('bookmarks.resume')),
+                    )
+                  : null,
+                bookmarkable
+                  ? h(
+                      'button',
+                      {
+                        className: 'dsd-btn dsd-bookmark-toggle',
+                        type: 'button',
+                        'data-quiet': true,
+                        'data-dsd-bookmark-toggle': 'true',
+                        'data-active': bookmarksOpen ? 'true' : 'false',
+                        title: t('bookmarks.open'),
+                        'aria-label': t('bookmarks.open'),
+                        onClick: () => setBookmarksOpen((previous) => !previous),
+                      },
+                      icon('bookmark', 15),
+                      h('span', { className: 'dsd-bookmark-toggle-label' }, t('bookmarks.title')),
+                      activeBookmarks.length > 0 ? h('span', { className: 'dsd-bookmark-count' }, activeBookmarks.length > 99 ? '99+' : String(activeBookmarks.length)) : null,
+                    )
+                  : null,
+              )
+            : null,
           h(
             'div',
             { className: 'dsd-doc-reader' },
@@ -4312,64 +4718,59 @@ body.dsd-immersive { overflow:hidden !important; }
               { className: 'dsd-doc-scroll', ref: docScrollRef, onScroll: handleDocScroll },
               h(
                 'div',
-                { className: 'dsd-doc-inner' },
+                { className: 'dsd-doc-inner', 'data-wide': canRead ? undefined : 'true' },
                 h(
                   'div',
                   { className: 'dsd-doc-pathbar' },
-                  icon('doc', 14),
+                  icon(KIND_ICON[kind] || 'doc', 14),
                   h('span', { className: 'dsd-doc-path', title: activePath }, activePath),
-                h(
-                  'button',
-                  { className: 'dsd-btn', type: 'button', 'data-quiet': true, title: t('action.copyPath'), 'aria-label': t('action.copyPath'), onClick: () => copyText(activePath) },
-                  icon('copy', 14),
+                  h(
+                    'button',
+                    { className: 'dsd-btn', type: 'button', 'data-quiet': true, title: t('action.copyPath'), 'aria-label': t('action.copyPath'), onClick: () => copyText(activePath) },
+                    icon('copy', 14),
+                  ),
+                  h(
+                    'button',
+                    { className: 'dsd-btn', type: 'button', 'data-quiet': true, title: t('action.refreshContent'), 'aria-label': t('action.refreshContent'), onClick: reloadDoc },
+                    icon('refresh', 14),
+                  ),
+                  activePath !== GUIDE_PATH && !canRead ? pathButton('external', t('doc.openExternal'), openExternal) : null,
+                  activePath !== GUIDE_PATH ? pathButton('download', t('doc.download'), download) : null,
+                  h(
+                    'button',
+                    {
+                      className: 'dsd-btn',
+                      type: 'button',
+                      'data-quiet': true,
+                      'data-active': immersive ? 'true' : 'false',
+                      title: immersive ? t('immersive.exit') : t('immersive.enter'),
+                      'aria-label': immersive ? t('immersive.exit') : t('immersive.enter'),
+                      'aria-pressed': immersive,
+                      onClick: toggleImmersive,
+                    },
+                    icon(immersive ? 'collapse' : 'expand', 14),
+                  ),
                 ),
-                h(
-                  'button',
-                  { className: 'dsd-btn', type: 'button', 'data-quiet': true, title: t('action.refreshContent'), 'aria-label': t('action.refreshContent'), onClick: reloadDoc },
-                  icon('refresh', 14),
-                ),
-                h(
-                  'button',
-                  {
-                    className: 'dsd-btn',
-                    type: 'button',
-                    'data-quiet': true,
-                    'data-active': immersive ? 'true' : 'false',
-                    title: immersive ? t('immersive.exit') : t('immersive.enter'),
-                    'aria-label': immersive ? t('immersive.exit') : t('immersive.enter'),
-                    'aria-pressed': immersive,
-                    onClick: toggleImmersive,
-                  },
-                  icon(immersive ? 'collapse' : 'expand', 14),
-                ),
+                doc.status === 'loading' || (doc.status === 'ready' && !docReady) ? h('div', { className: 'dsd-doc-loading' }, t('doc.loading')) : null,
+                doc.status === 'error' && doc.path === activePath
+                  ? h(
+                      'div',
+                      { className: 'dsd-doc-error' },
+                      h('span', null, t('doc.failed', { reason: doc.error || 'unknown' })),
+                      h(
+                        'button',
+                        { className: 'dsd-btn', type: 'button', onClick: () => removeItem(activePath) },
+                        icon('trash', 13),
+                        h('span', null, t('action.remove')),
+                      ),
+                    )
+                  : null,
+                docReady ? renderReady() : null,
               ),
-              doc.status === 'loading' ? h('div', { className: 'dsd-doc-loading' }, t('doc.loading')) : null,
-              doc.status === 'error'
-                ? h(
-                    'div',
-                    { className: 'dsd-doc-error' },
-                    h('span', null, t('doc.failed', { reason: doc.error || 'unknown' })),
-                    h(
-                      'button',
-                      { className: 'dsd-btn', type: 'button', onClick: () => removeItem(activePath) },
-                      icon('trash', 13),
-                      h('span', null, t('action.remove')),
-                    ),
-                  )
-                : null,
-              doc.status === 'ready'
-                ? h(
-                    'div',
-                    { className: 'dsd-doc-body', onContextMenu: onDocContextMenu },
-                    doc.truncated ? h('div', { className: 'dsd-doc-note' }, t('doc.truncated')) : null,
-                    doc.content.trim() === '' ? h('div', { className: 'dsd-doc-empty' }, t('doc.empty')) : renderMarkdown(doc.content, 'doc'),
-                  )
-                : null,
             ),
+            bookmarkable ? renderBookmarkRail() : null,
           ),
-          renderBookmarkRail(),
-        ),
-          bookmarksOpen ? renderBookmarksPanel() : null,
+          bookmarkable && bookmarksOpen ? renderBookmarksPanel() : null,
         )
       }
 
@@ -4424,6 +4825,31 @@ body.dsd-immersive { overflow:hidden !important; }
             ),
             h(
               'div',
+              { className: 'dsd-picker-filters' },
+              [
+                ['all', t('picker.filter.all')],
+                ['doc', t('picker.filter.doc')],
+                ['image', t('picker.filter.image')],
+                ['html', t('picker.filter.html')],
+                ['pdf', t('picker.filter.pdf')],
+                ['media', t('picker.filter.media')],
+                ['other', t('picker.filter.other')],
+              ].map(([id, label]) =>
+                h(
+                  'button',
+                  {
+                    key: id,
+                    className: 'dsd-filter',
+                    type: 'button',
+                    'data-active': picker.filter === id ? 'true' : 'false',
+                    onClick: () => setPicker((previous) => ({ ...previous, filter: id })),
+                  },
+                  label,
+                ),
+              ),
+            ),
+            h(
+              'div',
               { className: 'dsd-picker-list' },
               picker.status === 'loading' ? h('div', { className: 'dsd-picker-status' }, t('picker.loading')) : null,
               picker.status === 'error'
@@ -4451,6 +4877,7 @@ body.dsd-immersive { overflow:hidden !important; }
                         onClick: () => togglePicked(file.path),
                       },
                       h('span', { className: 'dsd-picker-check' }, checked ? icon('check', 12) : null),
+                      h('span', { className: 'dsd-picker-kind', 'data-kind': file.kind || fileKind(file.path) }, fileKindChip(file.path)),
                       h(
                         'span',
                         { className: 'dsd-picker-text' },
@@ -4667,7 +5094,7 @@ body.dsd-immersive { overflow:hidden !important; }
               h(
                 'button',
                 { className: 'dsd-menu-item', type: 'button', role: 'menuitem', onClick: () => openEntry(contextEntry) },
-                icon(contextEntry.kind === 'folder' ? 'folder' : 'doc', 14),
+                icon(contextEntry.kind === 'folder' ? 'folder' : fileKindIcon(contextEntry.path), 14),
                 h('span', null, t('action.open')),
               ),
               h(
