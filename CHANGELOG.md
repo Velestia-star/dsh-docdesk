@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 — 2026-11-12
+
+- A half-updated plugin now explains itself. A browser refresh only reloads the client half, so when the running Host still predates 0.4, opening an image/HTML/PDF/media file no longer shows the raw `not-markdown` error: the reader says to fully quit and reopen DSH Desktop. The picker shows the same notice above its list when the Host response has no per-file `kind`.
+- The document error card gained **Retry** next to **Remove from library**, so a document can be reloaded in place after the Host restart instead of closing and reopening its tab.
+
 ## 0.4.0 — 2026-11-12
 
 Multi-format materials library.

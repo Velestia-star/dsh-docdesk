@@ -95,6 +95,8 @@ If `npm` is unavailable, put `registry=https://registry.npmmirror.com` in `%USER
 
 After installation, refresh the browser tab once so the client plugin loads.
 
+When upgrading from an older version (for example to 0.4), if images, HTML, PDF or media do not appear in the picker, **fully quit and reopen DSH Desktop**: a page refresh only reloads the client half, while the Host half changes only when the host process restarts. After the restart, use **Retry** on a document's error card instead of closing and reopening its tab.
+
 ## Use
 
 - Open **资料区** in the left sidebar.

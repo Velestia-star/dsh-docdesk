@@ -230,6 +230,8 @@ window.__ModuleLoader__.load({
       'error.outside': '文件不在可访问的目录内',
       'error.notFound': '文件不存在',
       'error.unsupported': '不支持的文件类型',
+      'error.hostStale': '宿主插件还是旧版本，完全退出并重新打开 DSH Desktop 后再试',
+      'picker.staleHost': '宿主插件还是旧版本：图片、HTML、PDF 和音视频要等完全重启 DSH Desktop 后才能打开；只刷新页面只会更新客户端。',
       'sidebar.toggle': '隐藏 / 显示侧边栏',
     }
 
@@ -388,6 +390,8 @@ window.__ModuleLoader__.load({
       'error.outside': 'The file is outside the readable folders',
       'error.notFound': 'File not found',
       'error.unsupported': 'Unsupported file type',
+      'error.hostStale': 'The Host plugin is still on the previous build. Fully quit and reopen DSH Desktop, then try again.',
+      'picker.staleHost': 'The Host plugin is still on the previous build: images, HTML, PDF and media need a full DSH Desktop restart. Refreshing the page only updates the client.',
       'sidebar.toggle': 'Hide / show sidebar',
     }
 
@@ -2148,6 +2152,7 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-doc-note { margin-bottom:14px; padding:7px 10px; border-radius:8px; border:1px dashed var(--dsw-alias-border-l2,#d0d0d8); font-size:11.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-doc-loading { padding:36px 8px; text-align:center; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:12.5px; }
 .dsd-doc-error { margin:18px 0; padding:16px; border-radius:10px; border:1px solid var(--dsw-alias-state-error-primary,#c62f45); color:var(--dsw-alias-state-error-primary,#c62f45); font-size:12.5px; line-height:1.6; display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+.dsd-doc-error-actions { display:flex; flex-wrap:wrap; gap:8px; }
 .dsd-doc-empty { padding:36px 8px; text-align:center; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:12.5px; }
 .dsd-md-heading { margin:1.5em 0 .6em; line-height:1.3; font-weight:700; }
 .dsd-md-heading:first-child { margin-top:0; }
@@ -2242,6 +2247,8 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-filter:hover { color:var(--dsw-alias-label-primary,#1b1b1f); background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 7%, transparent); }
 .dsd-filter[data-active=true] { color:var(--dsw-alias-state-business-primary,#2f6fed); border-color:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 38%, transparent); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 11%, transparent); }
 .dsd-picker-status { padding:26px 12px; text-align:center; font-size:12.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-picker-warn { flex:none; display:flex; align-items:flex-start; gap:7px; margin:0 16px 8px; padding:8px 10px; border-radius:8px; border:1px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary,#b06a00) 38%, transparent); background:color-mix(in srgb, var(--dsw-alias-state-warn-primary,#b06a00) 9%, transparent); color:var(--dsw-alias-state-warn-primary,#b06a00); font-size:11.5px; line-height:1.55; }
+.dsd-picker-warn > svg { flex:none; margin-top:1px; }
 .dsd-picker-foot { flex:none; display:flex; align-items:center; gap:10px; padding:10px 16px; border-top:1px solid var(--dsw-alias-border-l1,#e4e4ea); }
 .dsd-picker-foot-meta { flex:1; min-width:0; font-size:11px; color:var(--dsw-alias-label-secondary,#6b6b76); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dsd-modal { position:absolute; inset:0; z-index:90; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(9,13,22,.36); animation:dsd-fade .12s ease-out; }
@@ -2441,7 +2448,7 @@ body.dsd-immersive { overflow:hidden !important; }
       const [marquee, setMarquee] = useState(null)
       const [dropFolder, setDropFolder] = useState(null)
       const [dropSlot, setDropSlot] = useState(null)
-      const [picker, setPicker] = useState({ open: false, status: 'idle', files: [], roots: [], truncated: false, partial: false, error: null, query: '', filter: 'all', selected: new Set() })
+      const [picker, setPicker] = useState({ open: false, status: 'idle', files: [], roots: [], truncated: false, partial: false, error: null, query: '', filter: 'all', staleHost: false, selected: new Set() })
       const [doc, setDoc] = useState({ status: 'idle' })
       const [docReload, setDocReload] = useState(0)
       const [imageZoom, setImageZoom] = useState(false)
@@ -3037,7 +3044,16 @@ body.dsd-immersive { overflow:hidden !important; }
         fetch(`${API_READ}?path=${encodeURIComponent(activePath)}`, { signal: controller.signal, credentials: 'same-origin' })
           .then(async (response) => {
             const body = await response.json().catch(() => null)
-            if (!response.ok) throw new Error(body && body.error === 'unsupported-type' ? t('error.unsupported') : body && body.error ? body.error : `HTTP ${response.status}`)
+            if (!response.ok) {
+              const code = body && body.error
+              const reason =
+                code === 'not-markdown'
+                  ? t('error.hostStale')
+                  : code === 'unsupported-type'
+                    ? t('error.unsupported')
+                    : code || `HTTP ${response.status}`
+              throw new Error(reason)
+            }
             const next = {
               status: 'ready',
               path: activePath,
@@ -3097,20 +3113,22 @@ body.dsd-immersive { overflow:hidden !important; }
 
       const openPicker = useCallback(async () => {
         const token = (pickerToken.current += 1)
-        setPicker({ open: true, status: 'loading', files: [], roots: [], truncated: false, partial: false, error: null, query: '', filter: 'all', selected: new Set() })
+        setPicker({ open: true, status: 'loading', files: [], roots: [], truncated: false, partial: false, error: null, query: '', filter: 'all', staleHost: false, selected: new Set() })
         try {
           const response = await fetch(`${API_LIST}?refresh=1`, { credentials: 'same-origin' })
           const body = await response.json().catch(() => null)
           if (!response.ok) throw new Error(body && body.error ? body.error : `HTTP ${response.status}`)
           if (token !== pickerToken.current) return
+          const files = Array.isArray(body.files) ? body.files : []
           setPicker((previous) => ({
             ...previous,
             status: 'ready',
-            files: Array.isArray(body.files) ? body.files : [],
+            files,
             roots: Array.isArray(body.roots) ? body.roots : [],
             truncated: Boolean(body.truncated),
             partial: Boolean(body.partial),
             error: null,
+            staleHost: files.length > 0 && files.every((file) => !file || typeof file !== 'object' || !('kind' in file)),
           }))
         } catch (error) {
           if (token !== pickerToken.current) return
@@ -4758,10 +4776,20 @@ body.dsd-immersive { overflow:hidden !important; }
                       { className: 'dsd-doc-error' },
                       h('span', null, t('doc.failed', { reason: doc.error || 'unknown' })),
                       h(
-                        'button',
-                        { className: 'dsd-btn', type: 'button', onClick: () => removeItem(activePath) },
-                        icon('trash', 13),
-                        h('span', null, t('action.remove')),
+                        'div',
+                        { className: 'dsd-doc-error-actions' },
+                        h(
+                          'button',
+                          { className: 'dsd-btn', type: 'button', onClick: reloadDoc },
+                          icon('refresh', 13),
+                          h('span', null, t('action.retry')),
+                        ),
+                        h(
+                          'button',
+                          { className: 'dsd-btn', type: 'button', onClick: () => removeItem(activePath) },
+                          icon('trash', 13),
+                          h('span', null, t('action.remove')),
+                        ),
                       ),
                     )
                   : null,
@@ -4848,6 +4876,7 @@ body.dsd-immersive { overflow:hidden !important; }
                 ),
               ),
             ),
+            picker.staleHost ? h('div', { className: 'dsd-picker-warn' }, icon('refresh', 13), h('span', null, t('picker.staleHost'))) : null,
             h(
               'div',
               { className: 'dsd-picker-list' },

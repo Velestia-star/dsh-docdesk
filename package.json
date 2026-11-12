@@ -1,6 +1,6 @@
 {
   "name": "dsh-docdesk",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "An add-only multi-format materials library for DeepSeek Harness: pick Markdown, text/code, HTML, images, PDF, audio and video from workspaces, place icons on a fixed non-overlapping desktop grid, marquee-select and move groups with trailing drags, swap folders and drop onto a breadcrumb path, read anything full-screen with browser-style tabs and an immersive mode, and keep Markdown's GFM tables, Mermaid/chart blocks, bookmarks, persistent last-read bar and 3-second line highlights while text/code, sandboxed HTML with same-folder assets, image zoom, PDF and native media viewers cover the other formats; formats a browser cannot preview are not listed. · DSH 资料区：主动挑选 Markdown、纯文本/代码、HTML、图片、PDF、音频和视频，在固定网格桌面内对齐摆放，支持右键框选整组拖动、文件夹交换、路径投放、沉浸式全屏阅读与标签页切换；Markdown 提供 GFM 表格、Mermaid/图表代码块、上次阅读提示、滚动条书签标记和跳转高亮，其余格式各有阅读器（HTML 沙箱并读取同目录资源、图片缩放、PDF、音视频），浏览器无法预览的格式不会列出。",
   "type": "module",
   "main": "index.js",
