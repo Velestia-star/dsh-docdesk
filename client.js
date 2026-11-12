@@ -30,6 +30,7 @@ window.__ModuleLoader__.load({
 
 ## 添加与整理
 - 右上角「添加文件」打开选择器；文件只会加入资料区，不会移动磁盘文件。选择器上方的「全部 / 文档 / 图片 / 网页 / PDF / 媒体 / 其他」可以按类型过滤。
+- 选择器每行右侧的眼睛按钮可以预览：Markdown/文本显示内容，图片看缩略图，HTML/PDF 和音视频直接打开；预览底部可以直接加入资料区。
 - 拖到真正的空格时只移动拖动的文件；拖到图标之间的插入标线时，只把挡路的图标向后推：有空位就补空位，没空位就带着挡路图标一起移；多选整组始终占连续格子，不会跳过行尾的文件。
 - 按住右键在空白处拖动可以框选；拖动任意选中项会整组移动。拖动时图标保持抓取点与鼠标同步；整组拖动时其他选中项会靠近并隐藏在被拖图标后面，松开后出现在最终位置。
 - 新建文件夹后，可以把文件拖进去；右键菜单也能移动。右键文件夹可以「解散文件夹」或「删除文件夹」。
@@ -115,6 +116,12 @@ window.__ModuleLoader__.load({
       'picker.selected': '已选 {count} 个',
       'picker.roots': '{count} 个目录',
       'picker.partial': '部分目录未扫描完',
+      'picker.preview': '预览',
+      'picker.previewTitle': '文件预览',
+      'picker.previewOnly': '仅预览，不会加入资料区',
+      'picker.previewLoading': '正在加载预览…',
+      'picker.previewFailed': '预览失败：{reason}',
+      'picker.addThis': '加入资料区',
       'picker.filter.all': '全部',
       'picker.filter.doc': '文档',
       'picker.filter.image': '图片',
@@ -271,6 +278,12 @@ window.__ModuleLoader__.load({
       'picker.selected': '{count} selected',
       'picker.roots': '{count} directories',
       'picker.partial': 'Some directories were not scanned',
+      'picker.preview': 'Preview',
+      'picker.previewTitle': 'File preview',
+      'picker.previewOnly': 'Preview only — nothing is added',
+      'picker.previewLoading': 'Loading preview…',
+      'picker.previewFailed': 'Preview failed: {reason}',
+      'picker.addThis': 'Add to library',
       'picker.filter.all': 'All',
       'picker.filter.doc': 'Documents',
       'picker.filter.image': 'Images',
@@ -1447,6 +1460,11 @@ window.__ModuleLoader__.load({
             h('path', { key: 'b', d: 'M20 4l-9 9' }),
             h('path', { key: 'c', d: 'M18 14.4V18a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 18V7.8A1.8 1.8 0 0 1 5.8 6H10' }),
           ])
+        case 'eye':
+          return h('svg', base, [
+            h('path', { key: 'a', d: 'M2.8 12s3.4-6.1 9.2-6.1S21.2 12 21.2 12 17.8 18.1 12 18.1 2.8 12 2.8 12z' }),
+            h('circle', { key: 'c', cx: 12, cy: 12, r: 2.6 }),
+          ])
         case 'download':
           return paths(['M12 4v10', 'M8 10.4l4 4 4-4', 'M5 19h14'])
         default:
@@ -2310,12 +2328,15 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-picker-sub { margin-top:2px; font-size:11.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-picker-tools { flex:none; display:flex; align-items:center; gap:8px; padding:10px 16px 6px; }
 .dsd-picker-list { flex:1; min-height:0; overflow:auto; padding:0 10px 10px; scrollbar-width:thin; }
-.dsd-picker-row { display:flex; align-items:center; gap:10px; width:100%; padding:8px 10px; border:none; border-radius:8px; background:transparent; color:inherit; font:inherit; text-align:left; cursor:pointer; }
-.dsd-picker-row:hover:not(:disabled) { background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 7%, transparent); }
-.dsd-picker-row:disabled { opacity:.55; cursor:default; }
-.dsd-picker-check { display:flex; align-items:center; justify-content:center; width:17px; height:17px; flex:none; border-radius:5px; border:1px solid var(--dsw-alias-border-l2,#d0d0d8); color:transparent; }
-.dsd-picker-row[aria-checked=true] .dsd-picker-check { background:var(--dsw-alias-state-business-primary,#2f6fed); border-color:transparent; color:var(--dsw-alias-label-primary-foreground,#0f1115); }
-.dsd-picker-text { min-width:0; display:flex; flex-direction:column; gap:1px; flex:1; }
+.dsd-picker-row { display:flex; align-items:center; gap:10px; width:100%; padding:8px 10px; border-radius:8px; background:transparent; color:inherit; font:inherit; text-align:left; cursor:default; }
+.dsd-picker-row:hover { background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 7%, transparent); }
+.dsd-picker-row[data-added=true] .dsd-picker-name { color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-picker-check { display:flex; align-items:center; justify-content:center; width:17px; height:17px; flex:none; padding:0; border-radius:5px; border:1px solid var(--dsw-alias-border-l2,#d0d0d8); background:transparent; color:transparent; cursor:pointer; }
+.dsd-picker-check:disabled { opacity:.45; cursor:default; }
+.dsd-picker-check[aria-checked=true] { background:var(--dsw-alias-state-business-primary,#2f6fed); border-color:transparent; color:var(--dsw-alias-label-primary-foreground,#0f1115); }
+.dsd-picker-preview { flex:none; display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:0; border:none; border-radius:6px; background:transparent; color:var(--dsw-alias-label-secondary,#6b6b76); cursor:pointer; }
+.dsd-picker-preview:hover { background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 9%, transparent); color:var(--dsw-alias-label-primary,#1b1b1f); }
+.dsd-picker-text { min-width:0; display:flex; flex-direction:column; gap:1px; flex:1; padding:0; border:none; background:transparent; color:inherit; font:inherit; text-align:left; cursor:pointer; }
 .dsd-picker-name { font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dsd-picker-path { font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dsd-picker-meta { flex:none; margin-left:8px; font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); white-space:nowrap; }
@@ -2335,6 +2356,22 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-picker-warn > svg { flex:none; margin-top:1px; }
 .dsd-picker-foot { flex:none; display:flex; align-items:center; gap:10px; padding:10px 16px; border-top:1px solid var(--dsw-alias-border-l1,#e4e4ea); }
 .dsd-picker-foot-meta { flex:1; min-width:0; font-size:11px; color:var(--dsw-alias-label-secondary,#6b6b76); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dsd-preview { position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(9,13,22,.42); animation:dsd-fade .12s ease-out; }
+.dsd-preview-card { display:flex; flex-direction:column; width:min(760px,100%); height:min(600px,100%); overflow:hidden; border-radius:14px; background:var(--dsw-alias-bg-layer-1,#fff); border:1px solid var(--dsw-alias-border-l1,#e4e4ea); box-shadow:0 20px 50px rgba(0,0,0,.28); }
+.dsd-preview-head { flex:none; display:flex; align-items:center; gap:9px; padding:11px 14px; border-bottom:1px solid var(--dsw-alias-border-l1,#e4e4ea); }
+.dsd-preview-icon { flex:none; display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 6%, transparent); color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-preview-heading { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.dsd-preview-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.dsd-preview-meta { font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-preview-body { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+.dsd-preview-scroll { flex:1; min-height:0; overflow:auto; padding:12px 16px; }
+.dsd-preview-text { margin:0; }
+.dsd-preview-media { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:16px; }
+.dsd-preview-image { max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; }
+.dsd-preview-frame { flex:1; width:100%; min-height:0; border:none; background:#fff; }
+.dsd-preview-foot { flex:none; display:flex; align-items:center; flex-wrap:wrap; gap:8px 10px; padding:9px 14px; border-top:1px solid var(--dsw-alias-border-l1,#e4e4ea); }
+.dsd-preview-path { flex:1 1 140px; min-width:0; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dsd-preview-only { flex:none; font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-modal { position:absolute; inset:0; z-index:90; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(9,13,22,.36); animation:dsd-fade .12s ease-out; }
 .dsd-modal-card { width:min(390px,100%); padding:18px; border-radius:14px; background:var(--dsw-alias-bg-layer-1,#fff); border:1px solid var(--dsw-alias-border-l1,#e4e4ea); box-shadow:0 20px 50px rgba(0,0,0,.24); }
 .dsd-modal-title { margin:0 0 8px; font-size:14.5px; font-weight:700; }
@@ -2533,6 +2570,8 @@ body.dsd-immersive { overflow:hidden !important; }
       const [dropFolder, setDropFolder] = useState(null)
       const [dropSlot, setDropSlot] = useState(null)
       const [picker, setPicker] = useState({ open: false, status: 'idle', files: [], roots: [], truncated: false, partial: false, error: null, query: '', filter: 'all', staleHost: false, selected: new Set() })
+      const [previewFile, setPreviewFile] = useState(null)
+      const [previewDoc, setPreviewDoc] = useState({ status: 'idle' })
       const [doc, setDoc] = useState({ status: 'idle' })
       const [docReload, setDocReload] = useState(0)
       const [imageScale, setImageScale] = useState(1)
@@ -2565,6 +2604,7 @@ body.dsd-immersive { overflow:hidden !important; }
       const renameRef = useRef(null)
       const toastTimer = useRef(0)
       const pickerToken = useRef(0)
+      const previewCache = useRef(new Map())
       const docCache = useRef(new Map())
       const docAbort = useRef(null)
       const imageStageRef = useRef(null)
@@ -3303,6 +3343,7 @@ body.dsd-immersive { overflow:hidden !important; }
 
       const openPicker = useCallback(async () => {
         const token = (pickerToken.current += 1)
+        setPreviewFile(null)
         setPicker({ open: true, status: 'loading', files: [], roots: [], truncated: false, partial: false, error: null, query: '', filter: 'all', staleHost: false, selected: new Set() })
         try {
           const response = await fetch(`${API_LIST}?refresh=1`, { credentials: 'same-origin' })
@@ -3328,8 +3369,63 @@ body.dsd-immersive { overflow:hidden !important; }
 
       const closePicker = useCallback(() => {
         pickerToken.current += 1
+        setPreviewFile(null)
         setPicker((previous) => ({ ...previous, open: false }))
       }, [])
+
+      const openPreview = useCallback((file) => {
+        if (!file || typeof file.path !== 'string') return
+        setPreviewFile(file)
+      }, [])
+
+      const closePreview = useCallback(() => {
+        setPreviewFile(null)
+      }, [])
+
+      useEffect(() => {
+        if (!previewFile) {
+          setPreviewDoc({ status: 'idle' })
+          return undefined
+        }
+        const cached = previewCache.current.get(previewFile.path)
+        if (cached) {
+          setPreviewDoc(cached)
+          return undefined
+        }
+        const controller = new AbortController()
+        setPreviewDoc({ status: 'loading', path: previewFile.path })
+        fetch(`${API_READ}?path=${encodeURIComponent(previewFile.path)}`, { signal: controller.signal, credentials: 'same-origin' })
+          .then(async (response) => {
+            const body = await response.json().catch(() => null)
+            if (!response.ok) throw new Error(body && body.error ? body.error : `HTTP ${response.status}`)
+            const next = {
+              status: 'ready',
+              path: previewFile.path,
+              name: body.name || basename(previewFile.path),
+              kind: typeof body.kind === 'string' ? body.kind : fileKind(previewFile.path),
+              ext: typeof body.ext === 'string' ? body.ext : fileExt(previewFile.path),
+              url: typeof body.url === 'string' && body.url !== '' ? body.url : fileUrl(previewFile.path),
+              content: body.content || '',
+              truncated: Boolean(body.truncated),
+              size: body.size,
+              mtime: body.mtime,
+            }
+            previewCache.current.set(previewFile.path, next)
+            setPreviewDoc(next)
+          })
+          .catch((error) => {
+            if (error && error.name === 'AbortError') return
+            setPreviewDoc({ status: 'error', path: previewFile.path, error: error && error.message ? error.message : String(error) })
+          })
+        return () => controller.abort()
+      }, [previewFile])
+
+      const addPreviewFile = useCallback(() => {
+        if (!previewFile) return
+        const added = store.addFiles([{ path: previewFile.path, name: previewFile.name }], currentFolder)
+        setPreviewFile(null)
+        showToast(added > 0 ? t('toast.added', { count: added }) : t('toast.already'))
+      }, [previewFile, currentFolder, showToast])
 
       const addSelected = useCallback(() => {
         const chosen = picker.files.filter((file) => picker.selected.has(file.path))
@@ -3972,6 +4068,7 @@ body.dsd-immersive { overflow:hidden !important; }
               return setRenaming(null)
             }
             if (confirmState) return setConfirmState(null)
+            if (previewFile) return setPreviewFile(null)
             if (picker.open) return closePicker()
             if (docMenu) return setDocMenu(null)
             if (bookmarksOpen) {
@@ -4000,7 +4097,7 @@ body.dsd-immersive { overflow:hidden !important; }
         }
         document.addEventListener('keydown', onKey)
         return () => document.removeEventListener('keydown', onKey)
-      }, [menu, renaming, confirmState, picker.open, selected, library.activeTab, deleteSelection, closePicker, immersive, toggleImmersive, exitImmersive, bookmarksOpen, docMenu, activePath, activeKind, docReady, imageFull, addBookmark])
+      }, [menu, renaming, confirmState, picker.open, previewFile, selected, library.activeTab, deleteSelection, closePicker, immersive, toggleImmersive, exitImmersive, bookmarksOpen, docMenu, activePath, activeKind, docReady, imageFull, addBookmark])
 
       const chain = useMemo(() => folderChain(library.folders, currentFolder), [library.folders, currentFolder])
       const pathSegments = useMemo(() => {
@@ -5169,6 +5266,119 @@ body.dsd-immersive { overflow:hidden !important; }
         )
       }
 
+      const renderPreview = () => {
+        if (!previewFile) return null
+        const kind = previewDoc.status === 'ready' ? previewDoc.kind : fileKind(previewFile.path)
+        const inLibrary = Boolean(library.items[previewFile.path])
+        const separatorIndex = Math.max(previewFile.path.lastIndexOf('\\'), previewFile.path.lastIndexOf('/'))
+        const previewDir = separatorIndex > 0 ? previewFile.path.slice(0, separatorIndex) : ''
+        const meta = [
+          fileKindChip(previewFile.path),
+          previewDoc.status === 'ready' && Number.isFinite(previewDoc.size) ? formatSize(previewDoc.size) : formatSize(previewFile.size),
+          formatTime(previewFile.mtime),
+        ].filter(Boolean).join(' · ')
+        const renderPreviewBody = () => {
+          if (previewDoc.status === 'loading' || previewDoc.status === 'idle') {
+            return h('div', { className: 'dsd-picker-status' }, t('picker.previewLoading'))
+          }
+          if (previewDoc.status === 'error') {
+            return h('div', { className: 'dsd-picker-status' }, t('picker.previewFailed', { reason: previewDoc.error || 'unknown' }))
+          }
+          if (previewDoc.status !== 'ready') return null
+          if (kind === 'markdown') {
+            return h(
+              'div',
+              { className: 'dsd-preview-scroll' },
+              previewDoc.truncated ? h('div', { className: 'dsd-doc-note' }, t('doc.truncated')) : null,
+              h('div', { className: 'dsd-doc-body' }, renderMarkdown(previewDoc.content, 'preview', previewDir)),
+            )
+          }
+          if (kind === 'text') {
+            return h(
+              'div',
+              { className: 'dsd-preview-scroll' },
+              previewDoc.truncated ? h('div', { className: 'dsd-doc-note' }, t('doc.truncated')) : null,
+              h('pre', { className: 'dsd-doc-text dsd-preview-text' }, previewDoc.content),
+            )
+          }
+          if (kind === 'image') {
+            return h(
+              'div',
+              { className: 'dsd-preview-media' },
+              h('img', { className: 'dsd-preview-image', src: previewDoc.url, alt: previewFile.name, draggable: false }),
+            )
+          }
+          if (kind === 'html' || kind === 'pdf') {
+            return h('iframe', {
+              className: 'dsd-preview-frame',
+              src: previewDoc.url,
+              title: previewFile.name,
+              sandbox: kind === 'html' ? 'allow-scripts allow-popups allow-modals allow-downloads' : undefined,
+              referrerPolicy: 'no-referrer',
+            })
+          }
+          if (kind === 'audio') {
+            return h(
+              'div',
+              { className: 'dsd-preview-media' },
+              h('audio', { className: 'dsd-audio', src: previewDoc.url, controls: true, preload: 'metadata' }),
+            )
+          }
+          if (kind === 'video') {
+            return h(
+              'div',
+              { className: 'dsd-preview-media' },
+              h('video', { className: 'dsd-video', src: previewDoc.url, controls: true, preload: 'metadata', playsInline: true }),
+            )
+          }
+          return h('div', { className: 'dsd-picker-status' }, t('doc.unsupported'))
+        }
+        return h(
+          'div',
+          { className: 'dsd-preview', onPointerDown: (event) => { if (event.target === event.currentTarget) closePreview() } },
+          h(
+            'div',
+            { className: 'dsd-preview-card', role: 'dialog', 'aria-modal': true, 'aria-label': t('picker.previewTitle') },
+            h(
+              'div',
+              { className: 'dsd-preview-head' },
+              h('span', { className: 'dsd-preview-icon' }, icon(fileKindIcon(previewFile.path), 16)),
+              h(
+                'div',
+                { className: 'dsd-preview-heading' },
+                h('strong', { className: 'dsd-preview-name', title: previewFile.path }, previewFile.name),
+                h('span', { className: 'dsd-preview-meta' }, meta),
+              ),
+              h(
+                'button',
+                {
+                  className: 'dsd-btn',
+                  type: 'button',
+                  'data-quiet': true,
+                  onClick: closePreview,
+                  title: t('action.close'),
+                  'aria-label': t('action.close'),
+                },
+                icon('close', 14),
+              ),
+            ),
+            h('div', { className: 'dsd-preview-body' }, renderPreviewBody()),
+            h(
+              'div',
+              { className: 'dsd-preview-foot' },
+              h('span', { className: 'dsd-preview-path', title: previewFile.path }, previewFile.path),
+              h('span', { className: 'dsd-preview-only' }, t('picker.previewOnly')),
+              h(
+                'button',
+                { className: 'dsd-btn', type: 'button', 'data-primary': true, disabled: inLibrary, onClick: addPreviewFile },
+                icon('plus', 14),
+                h('span', null, inLibrary ? t('picker.added') : t('picker.addThis')),
+              ),
+            ),
+          ),
+        )
+      }
+
       const renderPicker = () => {
         const selectedCount = picker.selected.size
         const visibleAddable = pickerRows.filter((file) => !library.items[file.path])
@@ -5262,23 +5472,38 @@ body.dsd-immersive { overflow:hidden !important; }
                     const inLibrary = Boolean(library.items[file.path])
                     const checked = picker.selected.has(file.path)
                     return h(
-                      'button',
-                      {
-                        key: file.path,
-                        className: 'dsd-picker-row',
-                        type: 'button',
-                        role: 'checkbox',
-                        'aria-checked': checked ? 'true' : 'false',
-                        disabled: inLibrary,
-                        onClick: () => togglePicked(file.path),
-                      },
-                      h('span', { className: 'dsd-picker-check' }, checked ? icon('check', 12) : null),
+                      'div',
+                      { key: file.path, className: 'dsd-picker-row', 'data-added': inLibrary ? 'true' : 'false' },
+                      h(
+                        'button',
+                        {
+                          className: 'dsd-picker-check',
+                          type: 'button',
+                          role: 'checkbox',
+                          'aria-checked': checked ? 'true' : 'false',
+                          'aria-label': file.name,
+                          disabled: inLibrary,
+                          onClick: () => togglePicked(file.path),
+                        },
+                        checked ? icon('check', 12) : null,
+                      ),
                       h('span', { className: 'dsd-picker-kind', 'data-kind': file.kind || fileKind(file.path) }, fileKindChip(file.path)),
                       h(
-                        'span',
-                        { className: 'dsd-picker-text' },
+                        'button',
+                        { className: 'dsd-picker-text', type: 'button', onClick: () => (inLibrary ? openPreview(file) : togglePicked(file.path)) },
                         h('span', { className: 'dsd-picker-name' }, file.name),
                         h('span', { className: 'dsd-picker-path', title: file.path }, `${file.rootTitle} / ${file.rel}`),
+                      ),
+                      h(
+                        'button',
+                        {
+                          className: 'dsd-picker-preview',
+                          type: 'button',
+                          title: t('picker.preview'),
+                          'aria-label': `${t('picker.preview')} ${file.name}`,
+                          onClick: () => openPreview(file),
+                        },
+                        icon('eye', 13),
                       ),
                       inLibrary ? h('span', { className: 'dsd-picker-added' }, t('picker.added')) : null,
                       h('span', { className: 'dsd-picker-meta' }, `${formatTime(file.mtime)} · ${formatSize(file.size)}`),
@@ -5305,6 +5530,7 @@ body.dsd-immersive { overflow:hidden !important; }
               ),
             ),
           ),
+          previewFile ? renderPreview() : null,
         )
       }
 

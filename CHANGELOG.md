@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0 — 2026-11-12
+
+- The add-files picker now has a **Preview** action on every row. It opens a preview dialog with the file's content or media: Markdown renders with tables, code blocks and Mermaid, text/code uses the monospace reader, images show a thumbnail, HTML runs in the sandbox with same-folder assets, PDF uses the browser viewer, and audio/video play natively. The footer can add the file to the library in one click.
+- Picker rows were rebuilt around separate select and preview buttons: previewing never changes the current selection, and rows already in the library can still be previewed.
+- Esc closes the preview before the picker, the preview remembers files it has already read while the picker stays open, and the picker's backdrop no longer closes the whole dialog when the click lands on the preview layer.
+
 ## 0.6.3 — 2026-11-12
 
 - Fixed the black 资料区 panel when an image tab was restored or opened: the image page still referenced a removed `zoomed` variable, so the panel threw a `ReferenceError` before painting. The image page renders again.
