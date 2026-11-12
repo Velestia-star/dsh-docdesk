@@ -42,7 +42,8 @@ window.__ModuleLoader__.load({
 ## 阅读
 - 双击文件打开；顶部标签切换文件，「资料区」回主页。
 - Markdown 照常渲染表格、图表和 Mermaid；纯文本与代码用等宽滚动阅读器打开；图片、PDF、音频、视频各用自己的阅读界面。
-- 图片点一下在「适应窗口」和「原始大小」之间切换；网页和 PDF 只能在沙箱或浏览器阅读器里看，需要保存时点下载。
+- 图片按住 Shift 滚轮可以平滑缩放；点一下在「适应窗口」和「原始大小」之间切换。
+- 路径栏按钮下面带小字：定位、复制、重读、打开、下载、沉浸。点「定位」会在系统文件管理器中显示当前文件；网页和 PDF 只能在沙箱或浏览器阅读器里看，需要保存时点下载。
 - 按 F 进入或退出沉浸阅读；Esc 也可以退出。沉浸中每行图标数和普通模式相同，横向间距会拉大；退出后回到原来的位置。
 - 按 B 或在右侧书签按钮添加书签（只对 Markdown）；书签面板可以跳转、改标题、写备注、删除。
 - 滚动时自动记录上次阅读位置；重新打开 Markdown 或纯文本时顶部会显示「上次阅读」和「继续阅读」。
@@ -169,6 +170,16 @@ window.__ModuleLoader__.load({
       'doc.imageHint': '点击图片可在「适应窗口」和「原始大小」之间切换。',
       'doc.imageZoomIn': '原始大小',
       'doc.imageZoomOut': '适应窗口',
+      'doc.imageHint': 'Shift+滚轮缩放，点图片切换适应窗口 / 原始大小。',
+      'bar.copy': '复制',
+      'bar.reload': '重读',
+      'bar.reveal': '定位',
+      'bar.open': '打开',
+      'bar.download': '下载',
+      'bar.immersive': '沉浸',
+      'doc.revealTitle': '在文件管理器中显示所在位置',
+      'toast.revealed': '已在文件管理器中显示',
+      'toast.revealFailed': '无法在文件管理器中显示：可能不是本机路径',
       'doc.audioHint': '音频文件，可以直接播放。',
       'doc.videoHint': '视频文件，可以直接播放。',
       'doc.unsupported': '这个格式无法内嵌预览，可以在新标签打开或下载。',
@@ -333,6 +344,16 @@ window.__ModuleLoader__.load({
       'doc.imageHint': 'Click the image to switch between fit-to-window and actual size.',
       'doc.imageZoomIn': 'Actual size',
       'doc.imageZoomOut': 'Fit to window',
+      'doc.imageHint': 'Shift+wheel zooms smoothly; click the image to switch between fit and actual size.',
+      'bar.copy': 'Copy',
+      'bar.reload': 'Reload',
+      'bar.reveal': 'Reveal',
+      'bar.open': 'Open',
+      'bar.download': 'Download',
+      'bar.immersive': 'Full',
+      'doc.revealTitle': 'Show in file manager',
+      'toast.revealed': 'Revealed in the file manager',
+      'toast.revealFailed': 'Could not reveal the file: it may not be a local path',
       'doc.audioHint': 'Audio file, ready to play.',
       'doc.videoHint': 'Video file, ready to play.',
       'doc.unsupported': 'This format cannot be previewed inline. Open it in a new tab or download it.',
@@ -1434,6 +1455,12 @@ window.__ModuleLoader__.load({
             h('path', { key: 'b', d: 'M20 4l-9 9' }),
             h('path', { key: 'c', d: 'M18 14.4V18a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 18V7.8A1.8 1.8 0 0 1 5.8 6H10' }),
           ])
+        case 'reveal':
+          return h('svg', base, [
+            h('path', { key: 'f', d: 'M3.4 6.8a1.6 1.6 0 0 1 1.6-1.6h4.1l1.8 2.1H19a1.6 1.6 0 0 1 1.6 1.6v9.2a1.6 1.6 0 0 1-1.6 1.6H5a1.6 1.6 0 0 1-1.6-1.6z' }),
+            h('circle', { key: 'c', cx: 12, cy: 14, r: 2 }),
+            h('path', { key: 'l', d: 'M13.4 15.4l1.6 1.6' }),
+          ])
         case 'download':
           return paths(['M12 4v10', 'M8 10.4l4 4 4-4', 'M5 19h14'])
         default:
@@ -2161,6 +2188,8 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-doc-scroll { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; }
 .dsd-doc-inner { max-width:880px; margin:0 auto; padding:18px 30px 64px; }
 .dsd-doc-pathbar { display:flex; align-items:center; gap:8px; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--dsw-alias-border-l1,#e4e4ea); color:var(--dsw-alias-label-secondary,#6b6b76); }
+.dsd-doc-pathbar .dsd-btn { flex-direction:column; gap:1px; height:auto; min-height:38px; padding:3px 6px; }
+.dsd-bar-label { font-size:9px; line-height:1.1; color:var(--dsw-alias-label-secondary,#6b6b76); white-space:nowrap; }
 .dsd-doc-pathbar > svg { flex:none; }
 .dsd-bookmark-count { min-width:15px; height:15px; padding:0 4px; border-radius:999px; background:var(--dsw-alias-state-business-primary,#2f6fed); color:var(--dsw-alias-label-primary-foreground,#0f1115); font-size:9.5px; line-height:15px; font-weight:700; text-align:center; }
 .dsd-resume { display:flex; align-items:flex-start; gap:10px; margin:0 0 16px; padding:10px 12px; border:1px solid color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 28%, var(--dsw-alias-border-l1,#e4e4ea)); border-radius:10px; background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 8%, transparent); color:var(--dsw-alias-label-primary,#1b1b1f); }
@@ -2246,7 +2275,7 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-media { display:flex; flex-direction:column; align-items:center; gap:10px; padding:4px 0 20px; }
 .dsd-media[data-zoom=true] { align-items:flex-start; }
 .dsd-media-image { display:block; max-width:100%; max-height:calc(100vh - 300px); object-fit:contain; border-radius:10px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:repeating-conic-gradient(color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 4%, transparent) 0% 25%, transparent 0% 50%) 50%/18px 18px; cursor:zoom-in; }
-.dsd-media-image[data-zoom=true] { max-width:none; max-height:none; cursor:zoom-out; }
+.dsd-media[data-zoom=true] .dsd-media-image { cursor:zoom-out; }
 .dsd-media-badge { display:flex; align-items:center; justify-content:center; width:76px; height:76px; border-radius:20px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 10%, var(--dsw-alias-bg-layer-1,#f6f6f8)); color:var(--dsw-alias-state-business-primary,#2f6fed); }
 .dsd-media-title { font-size:13px; font-weight:600; text-align:center; word-break:break-all; }
 .dsd-media-note { max-width:620px; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; line-height:1.6; text-align:center; }
@@ -2476,7 +2505,7 @@ body.dsd-immersive { overflow:hidden !important; }
       )
     }
 
-    function PanelPage({ toggleHostSidebar }) {
+    function PanelPage({ toggleHostSidebar, remote }) {
       const library = useLibrary()
       const bookmarks = useBookmarks()
       const [currentFolder, setCurrentFolder] = useState(null)
@@ -2503,7 +2532,7 @@ body.dsd-immersive { overflow:hidden !important; }
       const [picker, setPicker] = useState({ open: false, status: 'idle', files: [], roots: [], truncated: false, partial: false, error: null, query: '', filter: 'all', staleHost: false, selected: new Set() })
       const [doc, setDoc] = useState({ status: 'idle' })
       const [docReload, setDocReload] = useState(0)
-      const [imageZoom, setImageZoom] = useState(false)
+      const [imageScale, setImageScale] = useState(1)
       const [mediaError, setMediaError] = useState(false)
       const [search, setSearch] = useState('')
       const [toast, setToast] = useState(null)
@@ -2533,6 +2562,7 @@ body.dsd-immersive { overflow:hidden !important; }
       const pickerToken = useRef(0)
       const docCache = useRef(new Map())
       const docAbort = useRef(null)
+      const mediaRef = useRef(null)
       const normalColumnsRef = useRef(0)
       const gridMetricsRef = useRef(null)
       const skipGridLayoutRef = useRef(false)
@@ -2754,6 +2784,21 @@ body.dsd-immersive { overflow:hidden !important; }
       const activeKind = activePath ? (docReady && typeof doc.kind === 'string' ? doc.kind : fileKind(activePath)) : null
       const bookmarkable = activeKind === 'markdown'
       const readable = activeKind === 'markdown' || activeKind === 'text'
+      useEffect(() => {
+        if (activeKind !== 'image' || !docReady) return undefined
+        const node = mediaRef.current
+        if (!node) return undefined
+        const onWheel = (event) => {
+          if (!event.shiftKey || event.deltaY === 0) return
+          event.preventDefault()
+          setImageScale((value) => {
+            const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12
+            return Math.min(6, Math.max(0.2, Math.round(value * factor * 100) / 100))
+          })
+        }
+        node.addEventListener('wheel', onWheel, { passive: false })
+        return () => node.removeEventListener('wheel', onWheel)
+      }, [activeKind, docReady, activePath, docReload, mediaError])
       const lastPosition = activePath ? bookmarkStore.getState().positions[activePath] || null : null
       const activeBookmarks = useMemo(() => {
         if (!activePath) return []
@@ -3138,7 +3183,7 @@ body.dsd-immersive { overflow:hidden !important; }
       }, [activePath, docReload])
 
       useEffect(() => {
-        setImageZoom(false)
+        setImageScale(1)
         setMediaError(false)
       }, [activePath, docReload])
 
@@ -3171,6 +3216,26 @@ body.dsd-immersive { overflow:hidden !important; }
         },
         [showToast],
       )
+
+      const revealFile = useCallback(async () => {
+        if (!activePath || activePath === GUIDE_PATH) return
+        const api = remote && remote.session && typeof remote.session.openWorkspacePath === 'function' ? remote.session : null
+        if (!api) {
+          showToast(t('toast.revealFailed'))
+          return
+        }
+        const controller = new AbortController()
+        const timer = window.setTimeout(() => controller.abort(), 6000)
+        try {
+          const result = await api.openWorkspacePath({ path: activePath, action: 'reveal' }, controller.signal)
+          if (!result || result.ok !== true) throw new Error('reveal')
+          showToast(t('toast.revealed'))
+        } catch {
+          showToast(t('toast.revealFailed'))
+        } finally {
+          window.clearTimeout(timer)
+        }
+      }, [activePath, remote, showToast])
 
       const openPicker = useCallback(async () => {
         const token = (pickerToken.current += 1)
@@ -4642,19 +4707,21 @@ body.dsd-immersive { overflow:hidden !important; }
             /* popup blocked */
           }
         }
-        const pathButton = (name, title, onClick, active) =>
+        const pathButton = (name, title, onClick, active, label, pressed) =>
           h(
             'button',
             {
-              className: 'dsd-btn',
+              className: 'dsd-btn dsd-bar-btn',
               type: 'button',
               'data-quiet': true,
               'data-active': active ? 'true' : 'false',
+              'aria-pressed': pressed === undefined ? undefined : pressed ? 'true' : 'false',
               title,
               'aria-label': title,
               onClick,
             },
             icon(name, 14),
+            label ? h('span', { className: 'dsd-bar-label' }, label) : null,
           )
         const mediaCard = (iconName, note) =>
           h(
@@ -4688,19 +4755,32 @@ body.dsd-immersive { overflow:hidden !important; }
           }
           if (kind === 'image') {
             if (mediaError) return mediaCard('image', t('doc.mediaFailed'))
+            const zoomed = imageScale !== 1
             return h(
               'div',
-              { className: 'dsd-media', 'data-zoom': imageZoom ? 'true' : 'false' },
+              { className: 'dsd-media', ref: mediaRef, 'data-zoom': zoomed ? 'true' : 'false' },
               h('img', {
                 className: 'dsd-media-image',
                 src: mediaUrl,
                 alt: doc.name || basename(activePath),
-                'data-zoom': imageZoom ? 'true' : 'false',
-                title: imageZoom ? t('doc.imageZoomOut') : t('doc.imageZoomIn'),
-                onClick: () => setImageZoom((value) => !value),
+                draggable: false,
+                style: zoomed ? { width: `${imageScale * 100}%`, maxWidth: 'none', maxHeight: 'none' } : undefined,
+                title: zoomed ? t('doc.imageZoomOut') : t('doc.imageZoomIn'),
+                onClick: (event) => {
+                  const element = event.currentTarget
+                  if (imageScale !== 1) {
+                    setImageScale(1)
+                    return
+                  }
+                  const parent = element.parentElement
+                  const parentWidth = parent ? parent.clientWidth : 0
+                  if (parentWidth > 0 && element.naturalWidth > 0) {
+                    setImageScale(Math.min(6, Math.max(0.1, Math.round((element.naturalWidth / parentWidth) * 100) / 100)))
+                  }
+                },
                 onError: () => setMediaError(true),
               }),
-              h('div', { className: 'dsd-media-note' }, t('doc.imageHint')),
+              h('div', { className: 'dsd-media-note' }, imageScale === 1 ? t('doc.imageHint') : `${Math.round(imageScale * 100)}% · ${t('doc.imageHint')}`),
             )
           }
           if (kind === 'html') {
@@ -4837,31 +4917,18 @@ body.dsd-immersive { overflow:hidden !important; }
                   { className: 'dsd-doc-pathbar' },
                   icon(KIND_ICON[kind] || 'doc', 14),
                   h('span', { className: 'dsd-doc-path', title: activePath }, activePath),
-                  h(
-                    'button',
-                    { className: 'dsd-btn', type: 'button', 'data-quiet': true, title: t('action.copyPath'), 'aria-label': t('action.copyPath'), onClick: () => copyText(activePath) },
-                    icon('copy', 14),
-                  ),
-                  h(
-                    'button',
-                    { className: 'dsd-btn', type: 'button', 'data-quiet': true, title: t('action.refreshContent'), 'aria-label': t('action.refreshContent'), onClick: reloadDoc },
-                    icon('refresh', 14),
-                  ),
-                  activePath !== GUIDE_PATH && !canRead ? pathButton('external', t('doc.openExternal'), openExternal) : null,
-                  activePath !== GUIDE_PATH && !doc.external ? pathButton('download', t('doc.download'), download) : null,
-                  h(
-                    'button',
-                    {
-                      className: 'dsd-btn',
-                      type: 'button',
-                      'data-quiet': true,
-                      'data-active': immersive ? 'true' : 'false',
-                      title: immersive ? t('immersive.exit') : t('immersive.enter'),
-                      'aria-label': immersive ? t('immersive.exit') : t('immersive.enter'),
-                      'aria-pressed': immersive,
-                      onClick: toggleImmersive,
-                    },
-                    icon(immersive ? 'collapse' : 'expand', 14),
+                  activePath !== GUIDE_PATH ? pathButton('reveal', t('doc.revealTitle'), revealFile, false, t('bar.reveal')) : null,
+                  pathButton('copy', t('action.copyPath'), () => copyText(activePath), false, t('bar.copy')),
+                  pathButton('refresh', t('action.refreshContent'), reloadDoc, false, t('bar.reload')),
+                  activePath !== GUIDE_PATH && !canRead ? pathButton('external', t('doc.openExternal'), openExternal, false, t('bar.open')) : null,
+                  activePath !== GUIDE_PATH && !doc.external ? pathButton('download', t('doc.download'), download, false, t('bar.download')) : null,
+                  pathButton(
+                    immersive ? 'collapse' : 'expand',
+                    immersive ? t('immersive.exit') : t('immersive.enter'),
+                    toggleImmersive,
+                    immersive,
+                    t('bar.immersive'),
+                    immersive,
                   ),
                 ),
                 doc.external ? h('div', { className: 'dsd-doc-note' }, t('doc.externalNote')) : null,
@@ -5359,6 +5426,19 @@ body.dsd-immersive { overflow:hidden !important; }
         } catch {
           layout = undefined
         }
+        let remote
+        try {
+          remote = ctx.get('remote', false)
+        } catch {
+          remote = undefined
+        }
+        if (!remote) {
+          try {
+            remote = ctx.remote
+          } catch {
+            remote = undefined
+          }
+        }
         const toggleSidebar = () => {
           try {
             ;(layout || ctx.get('layout', false))?.toggleSidebar?.()
@@ -5367,7 +5447,7 @@ body.dsd-immersive { overflow:hidden !important; }
           }
         }
         const SidebarToggleEntry = () => h(SidebarToggle, { toggleSidebar })
-        const PanelPageEntry = () => h(PanelPage, { toggleHostSidebar: toggleSidebar })
+        const PanelPageEntry = () => h(PanelPage, { toggleHostSidebar: toggleSidebar, remote })
 
         disposers.push(
           ctx.slots.inject('sidebar.panellist', () =>

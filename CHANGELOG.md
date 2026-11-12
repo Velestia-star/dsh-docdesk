@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — 2026-11-12
+
+- Images zoom smoothly: hold <kbd>Shift</kbd> and scroll the wheel over the image. The scale runs from 20% to 600% in small steps, the note under the image shows the current percentage, and clicking still switches between fit-to-window and actual size.
+- Every document path-bar action now carries a short label under its icon — **Reveal**, **Copy**, **Reload**, **Open**, **Download** and **Full** — so the icon row no longer has to be guessed.
+- Added **Reveal** to the path bar: it asks the Host to show the current file in the system file manager through `session.openWorkspacePath({ action: 'reveal' })`, with a toast for success or failure.
+- The in-app guide, both READMEs, the plugin-manager metadata and the market entry now describe the new controls.
+
 ## 0.4.2 — 2026-11-12
 
 - Files added from a delivered file card now open even when their folder is outside every scanned workspace — for example a session directory that went cold after a DSH restart, or a project folder that was never registered as a workspace. Instead of failing with `outside-workspace`, the reader falls back to DSH's browser-authenticated `/api/file` channel, the same one the chat file preview uses.
