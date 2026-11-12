@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2 — 2026-11-12
+
+- Image zoom now sizes against the fitted image instead of the stage width, and the image never flex-shrinks: 20%–600% behaves correctly in both the inline stage and the full-screen layer, zooming out actually shrinks small images, and 600% is reachable for large ones. The fit is re-measured on load, stage resize and full-screen entry/exit.
+- The full-screen layer can be dismissed by clicking the backdrop or hint area as well as the image, Enter/Space or Esc; the hint no longer swallows clicks, double-clicking the inline image no longer opens and immediately closes the layer, and the image is keyboard-focusable with focus moved into the layer and restored on exit.
+- The image header no longer flashes the previous document's **External** tag and Download action while loading; loading and error cards keep the panel's horizontal padding; Esc now closes overlays before the full-screen layer.
+- Removed 16 unused locale keys.
+
 ## 0.6.1 — 2026-11-12
 
 - Hidden files (`.env`, `.github`, `.vscode`, …) are no longer listed by the picker, and `read` now rejects hidden dot-segments exactly like `file` and `site` already did; `site` also checks the resolved target, closing the symlink-to-hidden-file gap.

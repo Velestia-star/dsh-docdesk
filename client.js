@@ -81,7 +81,6 @@ window.__ModuleLoader__.load({
       'panel.title': '资料区',
       'tab.home': '资料区',
       'action.add': '添加文件',
-      'action.addShort': '添加',
       'action.newFolder': '新建文件夹',
       'action.open': '打开',
       'action.rename': '重命名',
@@ -91,7 +90,6 @@ window.__ModuleLoader__.load({
       'action.dissolveFolder': '解散文件夹',
       'sidebar.hide': '收起侧栏',
       'sidebar.show': '展开侧栏',
-      'action.moveTo': '移动到文件夹',
       'action.back': '返回上一级',
       'action.close': '关闭',
       'action.cancel': '取消',
@@ -107,7 +105,6 @@ window.__ModuleLoader__.load({
       'empty.folderHint': '把文件拖到文件夹图标上，或右键文件选择「移动到文件夹」。',
       'folder.defaultName': '新建文件夹',
       'folder.root': '资料区',
-      'folder.count': '{count} 项',
       'picker.title': '添加文件',
       'picker.subtitle': '从工作区选择要放进资料区的文档、图片、网页或媒体',
       'picker.search': '搜索文件',
@@ -156,7 +153,6 @@ window.__ModuleLoader__.load({
       'bookmarks.note': '备注（可选）',
       'bookmarks.save': '保存',
       'bookmarks.cancel': '取消',
-      'bookmarks.dismiss': '隐藏上次阅读提示',
       'guide.name': '资料区使用说明',
       'menu.parent': '返回上一级',
       'folder.tip': '{folders} 个文件夹 · {files} 个文件',
@@ -184,12 +180,9 @@ window.__ModuleLoader__.load({
       'doc.externalNote': '这个文件在当前工作区之外，通过 Harness 文件通道只读打开；相对资源、下载和拖动进度可能不可用。',
       'doc.externalHtml': '工作区外的 HTML 无法加载同目录的样式、脚本和图片，已显示为文件卡片；点「在新标签打开」查看它的内容。',
       'doc.mediaFailed': '这个文件没能加载：可能已被移动，或 Harness 文件通道拒绝了访问。',
-      'doc.mediaMeta': '{kind} · {size}',
       'pathDrop.title': '移动到文件夹',
       'pathDrop.hint': '移到路径上，松开鼠标放入',
       'pathDrop.current': '当前',
-      'drag.hintPut': '右键放入文件夹',
-      'drag.hintSwap': '右键与文件夹交换',
       'drag.hintFolder': '松开交换 · 右键放入文件夹',
       'drag.hintGroup': '松开移入 · 右键与文件夹交换',
       'chart.invalid': '图表数据无法解析，已显示原始代码。',
@@ -204,7 +197,6 @@ window.__ModuleLoader__.load({
       'selection.count': '已选 {count} 项',
       'action.removeSelected': '从资料区移除 {count} 项',
       'action.deselect': '取消选择',
-      'toast.noRoom': '附近没有足够的连续空位',
       'confirm.removeTitle': '从资料区移除？',
       'confirm.removeMany': '选中的 {count} 项会从资料区移除，磁盘上的文件不会被删除；文件夹里的文档会移回上一级。',
       'confirm.remove': '移除',
@@ -216,8 +208,6 @@ window.__ModuleLoader__.load({
       'toast.copyFailed': '复制失败，请手动选择路径',
       'toast.folderCreated': '已新建文件夹',
       'toast.folderDeleted': '已删除文件夹',
-      'toast.moved': '已移动',
-      'toast.movedMany': '已移动 {count} 项',
       'toast.noMove': '没有可移动的项',
       'context.addToLibrary': '放入资料区',
       'context.resolving': '正在加入…',
@@ -237,23 +227,16 @@ window.__ModuleLoader__.load({
       'confirm.deleteEmpty': '这个文件夹是空的，删除后无法恢复。',
       'confirm.delete': '删除',
       'confirm.cancel': '取消',
-      'error.load': '扫描失败：{reason}',
-      'error.read': '读取失败：{reason}',
-      'error.forbidden': '无法访问（仅本机可用）',
-      'error.outside': '文件不在可访问的目录内',
-      'error.notFound': '文件不存在',
       'error.unsupported': '不支持的文件类型',
       'error.externalDenied': '这个文件在工作区之外，Harness 文件通道拒绝了访问。',
       'error.hostStale': '宿主插件还是旧版本，完全退出并重新打开 DSH Desktop 后再试',
       'picker.staleHost': '宿主插件还是旧版本：图片、HTML、PDF 和音视频要等完全重启 DSH Desktop 后才能打开；只刷新页面只会更新客户端。',
-      'sidebar.toggle': '隐藏 / 显示侧边栏',
     }
 
     const EN = {
       'panel.title': 'Materials',
       'tab.home': 'Materials',
       'action.add': 'Add files',
-      'action.addShort': 'Add',
       'action.newFolder': 'New folder',
       'action.open': 'Open',
       'action.rename': 'Rename',
@@ -263,7 +246,6 @@ window.__ModuleLoader__.load({
       'action.dissolveFolder': 'Dissolve folder',
       'sidebar.hide': 'Collapse sidebar',
       'sidebar.show': 'Expand sidebar',
-      'action.moveTo': 'Move to folder',
       'action.back': 'Back',
       'action.close': 'Close',
       'action.cancel': 'Cancel',
@@ -279,7 +261,6 @@ window.__ModuleLoader__.load({
       'empty.folderHint': 'Drag a file onto a folder icon, or right-click it and choose “Move to folder”.',
       'folder.defaultName': 'New folder',
       'folder.root': 'Materials',
-      'folder.count': '{count} items',
       'picker.title': 'Add files',
       'picker.subtitle': 'Pick documents, images, web pages or media from your workspaces',
       'picker.search': 'Search files',
@@ -328,7 +309,6 @@ window.__ModuleLoader__.load({
       'bookmarks.note': 'Note (optional)',
       'bookmarks.save': 'Save',
       'bookmarks.cancel': 'Cancel',
-      'bookmarks.dismiss': 'Hide last-read prompt',
       'guide.name': 'DocDesk guide',
       'menu.parent': 'Go up one level',
       'folder.tip': '{folders} folders · {files} files',
@@ -356,12 +336,9 @@ window.__ModuleLoader__.load({
       'doc.externalNote': 'This file lives outside the scanned workspaces and opens read-only through the Harness file channel; relative assets, downloads and media seeking may be unavailable.',
       'doc.externalHtml': 'HTML outside the workspaces cannot load its sibling styles, scripts and images, so it is shown as a file card; use Open in new tab to read it.',
       'doc.mediaFailed': 'This file could not be loaded: it may have moved, or the Harness file channel denied access.',
-      'doc.mediaMeta': '{kind} · {size}',
       'pathDrop.title': 'Move to folder',
       'pathDrop.hint': 'Hover a path segment, then release to move',
       'pathDrop.current': 'Current',
-      'drag.hintPut': 'Right-click to put inside',
-      'drag.hintSwap': 'Right-click to swap with folder',
       'drag.hintFolder': 'Release to swap · right-click to put inside',
       'drag.hintGroup': 'Release to move in · right-click to swap with folder',
       'chart.invalid': 'Chart data could not be parsed; the raw code is shown below.',
@@ -376,7 +353,6 @@ window.__ModuleLoader__.load({
       'selection.count': '{count} selected',
       'action.removeSelected': 'Remove {count} from library',
       'action.deselect': 'Deselect',
-      'toast.noRoom': 'There is no free block of slots nearby',
       'confirm.removeTitle': 'Remove from library?',
       'confirm.removeMany': 'The selected {count} item(s) will be removed from the library. Files on disk are not deleted; documents inside removed folders return to the parent.',
       'confirm.remove': 'Remove',
@@ -388,8 +364,6 @@ window.__ModuleLoader__.load({
       'toast.copyFailed': 'Copy failed; select the path manually',
       'toast.folderCreated': 'Folder created',
       'toast.folderDeleted': 'Folder deleted',
-      'toast.moved': 'Moved',
-      'toast.movedMany': 'Moved {count} items',
       'toast.noMove': 'Nothing could be moved',
       'context.addToLibrary': 'Add to library',
       'context.resolving': 'Adding…',
@@ -409,16 +383,10 @@ window.__ModuleLoader__.load({
       'confirm.deleteEmpty': 'This folder is empty. Deleting it cannot be undone.',
       'confirm.delete': 'Delete',
       'confirm.cancel': 'Cancel',
-      'error.load': 'Scan failed: {reason}',
-      'error.read': 'Read failed: {reason}',
-      'error.forbidden': 'Access denied (loopback only)',
-      'error.outside': 'The file is outside the readable folders',
-      'error.notFound': 'File not found',
       'error.unsupported': 'Unsupported file type',
       'error.externalDenied': 'This file is outside the scanned workspaces and the Harness file channel denied access.',
       'error.hostStale': 'The Host plugin is still on the previous build. Fully quit and reopen DSH Desktop, then try again.',
       'picker.staleHost': 'The Host plugin is still on the previous build: images, HTML, PDF and media need a full DSH Desktop restart. Refreshing the page only updates the client.',
-      'sidebar.toggle': 'Hide / show sidebar',
     }
 
     let translate
@@ -593,6 +561,28 @@ window.__ModuleLoader__.load({
     function versionedUrl(url, version) {
       if (!url) return url
       return `${url}${url.includes('?') ? '&' : '?'}v=${version}`
+    }
+
+    /**
+     * Pixel size for the image at the current zoom step. The zoom percentage is
+     * relative to the fitted size (100% = fit inside the stage), so shrinking a
+     * small image actually shrinks it and 600% never collapses back to natural
+     * width under flex-shrink.
+     */
+    function imageSizing(fit, scale) {
+      const sized = Boolean(fit) && fit.width > 0 && fit.height > 0
+      const width = sized ? Math.max(1, Math.round(fit.width * scale)) : 0
+      const height = sized ? Math.max(1, Math.round(fit.height * scale)) : 0
+      const overflowing = sized && (width > fit.availableWidth || height > fit.availableHeight)
+      return {
+        sized,
+        width,
+        height,
+        overflowing,
+        style: sized
+          ? { width: `${width}px`, height: `${height}px`, maxWidth: 'none', maxHeight: 'none', flex: 'none' }
+          : { flex: 'none' },
+      }
     }
 
     function emptyLibrary() {
@@ -2278,14 +2268,17 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-image-actions .dsd-btn { flex-direction:column; gap:0; height:auto; min-height:34px; padding:2px 6px; }
 .dsd-image-stage { position:relative; flex:1; min-height:0; display:flex; align-items:center; justify-content:center; overflow:auto; padding:14px 16px 38px; background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#f6f6f8) 42%, transparent); }
 .dsd-image-stage[data-zoom=true] { align-items:flex-start; justify-content:flex-start; }
-.dsd-image-main { display:block; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; cursor:zoom-in; }
+.dsd-image-main { display:block; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; cursor:zoom-in; flex:none; }
+.dsd-image-main:focus-visible { outline:2px solid var(--dsw-alias-state-business-primary,#2f6fed); outline-offset:2px; }
+.dsd-doc-image > .dsd-doc-loading, .dsd-doc-image > .dsd-doc-error { margin-left:16px; margin-right:16px; }
 .dsd-image-stage-hint { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); max-width:calc(100% - 32px); padding:3px 10px; border-radius:999px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:color-mix(in srgb, var(--dsw-alias-bg-layer-2,#fff) 88%, transparent); color:var(--dsw-alias-label-secondary,#6b6b76); font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; }
 .dsd-image-stage-error { display:flex; flex-direction:column; align-items:center; gap:10px; color:var(--dsw-alias-label-secondary,#6b6b76); }
-.dsd-image-full { position:absolute; inset:0; z-index:78; display:flex; flex-direction:column; background:color-mix(in srgb, var(--dsw-alias-bg-base,#fff) 97%, transparent); }
+.dsd-image-full { position:absolute; inset:0; z-index:78; display:flex; flex-direction:column; background:color-mix(in srgb, var(--dsw-alias-bg-base,#fff) 97%, transparent); outline:none; }
 .dsd-image-full-stage { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; overflow:auto; padding:16px 18px 46px; }
 .dsd-image-full-stage[data-zoom=true] { align-items:flex-start; justify-content:flex-start; }
-.dsd-image-full-img { display:block; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; cursor:zoom-out; }
-.dsd-image-full-hint { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); max-width:calc(100% - 180px); padding:4px 11px; border-radius:999px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dsd-image-full-img { display:block; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; cursor:zoom-out; flex:none; }
+.dsd-image-full-img:focus-visible { outline:2px solid var(--dsw-alias-state-business-primary,#2f6fed); outline-offset:2px; }
+.dsd-image-full-hint { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); max-width:calc(100% - 180px); padding:4px 11px; border-radius:999px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; }
 .dsd-media-badge { display:flex; align-items:center; justify-content:center; width:76px; height:76px; border-radius:20px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 10%, var(--dsw-alias-bg-layer-1,#f6f6f8)); color:var(--dsw-alias-state-business-primary,#2f6fed); }
 .dsd-media-title { font-size:13px; font-weight:600; text-align:center; word-break:break-all; }
 .dsd-media-note { max-width:620px; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; line-height:1.6; text-align:center; }
@@ -2543,6 +2536,7 @@ body.dsd-immersive { overflow:hidden !important; }
       const [doc, setDoc] = useState({ status: 'idle' })
       const [docReload, setDocReload] = useState(0)
       const [imageScale, setImageScale] = useState(1)
+      const [imageFit, setImageFit] = useState({ width: 0, height: 0, availableWidth: 0, availableHeight: 0 })
       const [imageFull, setImageFull] = useState(false)
       const [mediaError, setMediaError] = useState(false)
       const [search, setSearch] = useState('')
@@ -2575,6 +2569,10 @@ body.dsd-immersive { overflow:hidden !important; }
       const docAbort = useRef(null)
       const imageStageRef = useRef(null)
       const imageFullStageRef = useRef(null)
+      const imageElRef = useRef(null)
+      const imageFullElRef = useRef(null)
+      const imageFullRef = useRef(null)
+      const imageFullSeen = useRef(false)
       const normalColumnsRef = useRef(0)
       const gridMetricsRef = useRef(null)
       const skipGridLayoutRef = useRef(false)
@@ -2796,6 +2794,76 @@ body.dsd-immersive { overflow:hidden !important; }
       const activeKind = activePath ? (docReady && typeof doc.kind === 'string' ? doc.kind : fileKind(activePath)) : null
       const bookmarkable = activeKind === 'markdown'
       const readable = activeKind === 'markdown' || activeKind === 'text'
+      const measureImageFit = useCallback(() => {
+        const image = imageFull ? imageFullElRef.current : imageElRef.current
+        const stage = imageFull ? imageFullStageRef.current : imageStageRef.current
+        if (!image || !stage) return
+        const naturalWidth = image.naturalWidth
+        const naturalHeight = image.naturalHeight
+        if (!naturalWidth || !naturalHeight) return
+        let computed = null
+        try {
+          computed = window.getComputedStyle(stage)
+        } catch {
+          computed = null
+        }
+        const padX = computed ? (parseFloat(computed.paddingLeft) || 0) + (parseFloat(computed.paddingRight) || 0) : 0
+        const padY = computed ? (parseFloat(computed.paddingTop) || 0) + (parseFloat(computed.paddingBottom) || 0) : 0
+        const availableWidth = Math.max(1, stage.clientWidth - padX)
+        const availableHeight = Math.max(1, stage.clientHeight - padY)
+        const fitScale = Math.min(availableWidth / naturalWidth, availableHeight / naturalHeight, 1)
+        const width = Math.max(1, Math.round(naturalWidth * fitScale))
+        const height = Math.max(1, Math.round(naturalHeight * fitScale))
+        setImageFit((previous) =>
+          previous.width === width &&
+          previous.height === height &&
+          previous.availableWidth === availableWidth &&
+          previous.availableHeight === availableHeight
+            ? previous
+            : { width, height, availableWidth, availableHeight },
+        )
+      }, [imageFull])
+
+      useEffect(() => {
+        if (activeKind !== 'image' || !docReady) return undefined
+        const stage = imageFull ? imageFullStageRef.current : imageStageRef.current
+        if (!stage) return undefined
+        let frame = 0
+        const schedule = () => {
+          window.cancelAnimationFrame(frame)
+          frame = window.requestAnimationFrame(() => measureImageFit())
+        }
+        schedule()
+        let observer
+        if (typeof ResizeObserver === 'function') {
+          observer = new ResizeObserver(schedule)
+          observer.observe(stage)
+        } else {
+          window.addEventListener('resize', schedule)
+        }
+        return () => {
+          window.cancelAnimationFrame(frame)
+          if (observer) observer.disconnect()
+          else window.removeEventListener('resize', schedule)
+        }
+      }, [activeKind, docReady, activePath, imageFull, measureImageFit])
+
+      useEffect(() => {
+        if (imageFull) {
+          imageFullSeen.current = true
+          try {
+            imageFullRef.current?.focus?.()
+          } catch {
+            /* focus is best effort */
+          }
+        } else if (imageFullSeen.current) {
+          try {
+            imageElRef.current?.focus?.()
+          } catch {
+            /* focus is best effort */
+          }
+        }
+      }, [imageFull])
       useEffect(() => {
         if (activeKind !== 'image' || !docReady) return undefined
         const node = imageFull ? imageFullStageRef.current : imageStageRef.current
@@ -3200,6 +3268,7 @@ body.dsd-immersive { overflow:hidden !important; }
         setImageScale(1)
         setImageFull(false)
         setMediaError(false)
+        setImageFit({ width: 0, height: 0, availableWidth: 0, availableHeight: 0 })
       }, [activePath, docReload])
 
       useEffect(() => {
@@ -3897,10 +3966,6 @@ body.dsd-immersive { overflow:hidden !important; }
             return
           }
           if (event.key === 'Escape') {
-            if (imageFull) {
-              event.preventDefault()
-              return setImageFull(false)
-            }
             if (menu) return setMenu(null)
             if (renaming) {
               renameRef.current = null
@@ -3913,6 +3978,10 @@ body.dsd-immersive { overflow:hidden !important; }
               setBookmarksOpen(false)
               setBookmarkEdit(null)
               return
+            }
+            if (imageFull) {
+              event.preventDefault()
+              return setImageFull(false)
             }
             if (immersive) {
               event.preventDefault()
@@ -4690,21 +4759,52 @@ body.dsd-immersive { overflow:hidden !important; }
       const renderImageFull = () => {
         if (!activePath) return null
         const mediaUrl = mediaUrlFor(doc, activePath)
-        const zoomed = imageScale !== 1
+        const sizing = imageSizing(imageFit, imageScale)
         return h(
           'div',
-          { className: 'dsd-image-full', role: 'dialog', 'aria-modal': true, 'aria-label': t('doc.imageFull') },
+          {
+            className: 'dsd-image-full',
+            ref: imageFullRef,
+            tabIndex: -1,
+            role: 'dialog',
+            'aria-modal': true,
+            'aria-label': t('doc.imageFull'),
+            onClick: (event) => {
+              if (event.target === event.currentTarget) setImageFull(false)
+            },
+          },
           h(
             'div',
-            { className: 'dsd-image-full-stage', ref: imageFullStageRef, 'data-zoom': zoomed ? 'true' : 'false' },
+            {
+              className: 'dsd-image-full-stage',
+              ref: imageFullStageRef,
+              'data-zoom': sizing.overflowing ? 'true' : 'false',
+              onClick: (event) => {
+                if (event.target === event.currentTarget) setImageFull(false)
+              },
+            },
             h('img', {
               className: 'dsd-image-full-img',
+              ref: imageFullElRef,
               src: mediaUrl,
               alt: doc.name || basename(activePath),
               draggable: false,
-              style: zoomed ? { width: `${imageScale * 100}%`, maxWidth: 'none', maxHeight: 'none' } : undefined,
+              tabIndex: 0,
+              role: 'button',
+              'aria-label': t('doc.imageFullExit'),
+              style: sizing.style,
               title: t('doc.imageFullExit'),
-              onClick: () => setImageFull(false),
+              onLoad: measureImageFit,
+              onClick: (event) => {
+                if (event.detail > 1) return
+                setImageFull(false)
+              },
+              onKeyDown: (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  setImageFull(false)
+                }
+              },
               onError: () => {
                 setMediaError(true)
                 setImageFull(false)
@@ -4775,7 +4875,8 @@ body.dsd-immersive { overflow:hidden !important; }
             ),
           )
         if (kind === 'image') {
-          const zoomed = imageScale !== 1
+          const imageExternal = docReady && doc.external
+          const sizing = imageSizing(imageFit, imageScale)
           return h(
             'div',
             { className: 'dsd-doc dsd-doc-image' },
@@ -4790,7 +4891,7 @@ body.dsd-immersive { overflow:hidden !important; }
                 h(
                   'span',
                   { className: 'dsd-image-meta' },
-                  [kindLabel, docReady && Number.isFinite(doc.size) ? formatSize(doc.size) : '', doc.external ? t('doc.externalTag') : ''].filter(Boolean).join(' · '),
+                  [kindLabel, docReady && Number.isFinite(doc.size) ? formatSize(doc.size) : '', imageExternal ? t('doc.externalTag') : ''].filter(Boolean).join(' · '),
                 ),
               ),
               h(
@@ -4798,7 +4899,7 @@ body.dsd-immersive { overflow:hidden !important; }
                 { className: 'dsd-image-actions' },
                 pathButton('copy', t('action.copyPath'), () => copyText(activePath), false, t('bar.copy')),
                 pathButton('refresh', t('action.refreshContent'), reloadDoc, false, t('bar.reload')),
-                !doc.external ? pathButton('download', t('doc.download'), download, false, t('bar.download')) : null,
+                !imageExternal ? pathButton('download', t('doc.download'), download, false, t('bar.download')) : null,
                 pathButton(
                   immersive ? 'collapse' : 'expand',
                   immersive ? t('immersive.exit') : t('immersive.enter'),
@@ -4826,7 +4927,7 @@ body.dsd-immersive { overflow:hidden !important; }
                 : docReady
                   ? h(
                       'div',
-                      { className: 'dsd-image-stage', ref: imageStageRef, 'data-zoom': zoomed ? 'true' : 'false' },
+                      { className: 'dsd-image-stage', ref: imageStageRef, 'data-zoom': sizing.overflowing ? 'true' : 'false' },
                       mediaError
                         ? h(
                             'div',
@@ -4842,12 +4943,26 @@ body.dsd-immersive { overflow:hidden !important; }
                           )
                         : h('img', {
                             className: 'dsd-image-main',
+                            ref: imageElRef,
                             src: mediaUrl,
                             alt: doc.name || basename(activePath),
                             draggable: false,
-                            style: zoomed ? { width: `${imageScale * 100}%`, maxWidth: 'none', maxHeight: 'none' } : undefined,
+                            tabIndex: 0,
+                            role: 'button',
+                            'aria-label': t('doc.imageEnterFull'),
+                            style: sizing.style,
                             title: t('doc.imageEnterFull'),
-                            onClick: () => setImageFull(true),
+                            onLoad: measureImageFit,
+                            onClick: (event) => {
+                              if (event.detail > 1) return
+                              setImageFull(true)
+                            },
+                            onKeyDown: (event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault()
+                                setImageFull(true)
+                              }
+                            },
                             onError: () => setMediaError(true),
                           }),
                       h(
