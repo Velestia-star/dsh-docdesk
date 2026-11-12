@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 — 2026-11-12
+
+- **Reveal** now works even when the browser Session remote rejects the path or is unavailable. The reader first tries `session.openWorkspacePath({ action: 'reveal' })`; when that fails it calls the new Host route `GET /api/dsh-docdesk/reveal?path=…`, which asks the Host's `sessionController` to reveal the file and otherwise opens the platform file manager natively (`explorer.exe /select,` on Windows, `open -R` on macOS, `xdg-open` on Linux). A failed reveal now reports the reason in the toast.
+- The Host gained that route, so restart DSH Desktop once after upgrading; the client half alone cannot open Explorer.
+
 ## 0.5.0 — 2026-11-12
 
 - Images zoom smoothly: hold <kbd>Shift</kbd> and scroll the wheel over the image. The scale runs from 20% to 600% in small steps, the note under the image shows the current percentage, and clicking still switches between fit-to-window and actual size.

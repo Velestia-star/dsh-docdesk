@@ -10,6 +10,7 @@ window.__ModuleLoader__.load({
     const API_LIST = '/api/dsh-docdesk/list'
     const API_READ = '/api/dsh-docdesk/read'
     const API_FILE = '/api/dsh-docdesk/file'
+    const API_REVEAL = '/api/dsh-docdesk/reveal'
     const API_RESOLVE = '/api/dsh-docdesk/resolve'
     const MERMAID_URL = '/api/dsh-docdesk/mermaid.js'
     const STORAGE_KEY = 'dsh-docdesk.library.v2'
@@ -180,6 +181,7 @@ window.__ModuleLoader__.load({
       'doc.revealTitle': '在文件管理器中显示所在位置',
       'toast.revealed': '已在文件管理器中显示',
       'toast.revealFailed': '无法在文件管理器中显示：可能不是本机路径',
+      'toast.revealFailedDetail': '定位失败：{reason}',
       'doc.audioHint': '音频文件，可以直接播放。',
       'doc.videoHint': '视频文件，可以直接播放。',
       'doc.unsupported': '这个格式无法内嵌预览，可以在新标签打开或下载。',
@@ -354,6 +356,7 @@ window.__ModuleLoader__.load({
       'doc.revealTitle': 'Show in file manager',
       'toast.revealed': 'Revealed in the file manager',
       'toast.revealFailed': 'Could not reveal the file: it may not be a local path',
+      'toast.revealFailedDetail': 'Could not reveal the file: {reason}',
       'doc.audioHint': 'Audio file, ready to play.',
       'doc.videoHint': 'Video file, ready to play.',
       'doc.unsupported': 'This format cannot be previewed inline. Open it in a new tab or download it.',
@@ -3219,22 +3222,39 @@ body.dsd-immersive { overflow:hidden !important; }
 
       const revealFile = useCallback(async () => {
         if (!activePath || activePath === GUIDE_PATH) return
-        const api = remote && remote.session && typeof remote.session.openWorkspacePath === 'function' ? remote.session : null
-        if (!api) {
-          showToast(t('toast.revealFailed'))
-          return
+        const reasons = []
+        const remoteApi = remote && remote.session && typeof remote.session.openWorkspacePath === 'function' ? remote.session : null
+        if (remoteApi) {
+          const controller = new AbortController()
+          const timer = window.setTimeout(() => controller.abort(), 6000)
+          try {
+            const result = await remoteApi.openWorkspacePath({ path: activePath, action: 'reveal' }, controller.signal)
+            if (result && result.ok === true) {
+              showToast(t('toast.revealed'))
+              return
+            }
+            const error = result && result.error
+            reasons.push(error && (error.code || error.message) ? error.code || error.message : 'remote')
+          } catch (error) {
+            reasons.push(error && error.message ? error.message : 'remote')
+          } finally {
+            window.clearTimeout(timer)
+          }
+        } else {
+          reasons.push('remote-unavailable')
         }
-        const controller = new AbortController()
-        const timer = window.setTimeout(() => controller.abort(), 6000)
         try {
-          const result = await api.openWorkspacePath({ path: activePath, action: 'reveal' }, controller.signal)
-          if (!result || result.ok !== true) throw new Error('reveal')
-          showToast(t('toast.revealed'))
-        } catch {
-          showToast(t('toast.revealFailed'))
-        } finally {
-          window.clearTimeout(timer)
+          const response = await fetch(`${API_REVEAL}?path=${encodeURIComponent(activePath)}`, { credentials: 'same-origin' })
+          const body = await response.json().catch(() => null)
+          if (response.ok && body && body.ok === true) {
+            showToast(t('toast.revealed'))
+            return
+          }
+          reasons.push(body && body.error ? body.error : `HTTP ${response.status}`)
+        } catch (error) {
+          reasons.push(error && error.message ? error.message : 'reveal')
         }
+        showToast(t('toast.revealFailedDetail', { reason: reasons.filter(Boolean).join(' / ') || 'unknown' }))
       }, [activePath, remote, showToast])
 
       const openPicker = useCallback(async () => {

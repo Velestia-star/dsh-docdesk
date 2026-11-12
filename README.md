@@ -176,9 +176,10 @@ The bundle has two halves:
   - `GET /api/dsh-docdesk/read?path=<absolute path>` — one text file's content (2 MB cap)
   - `GET /api/dsh-docdesk/file?path=<absolute path>` — raw bytes for a whitelisted file; supports HTTP `Range` for audio/video seeking, and `download=1` for an attachment response
   - `GET /api/dsh-docdesk/site/<rootToken>/<relative path>` — an HTML file's sibling assets (CSS, JS, images) from the same workspace root; `<rootToken>` is the base64url-encoded workspace root id
+  - `GET /api/dsh-docdesk/reveal?path=<absolute path>` — show and select the file in the system file manager (Host `sessionController.openWorkspacePath` first, then the native `explorer.exe` / `open -R` / `xdg-open` fallback)
   - `GET /api/dsh-docdesk/resolve?sessionId=…&seq=…&index=…` — resolve a delivered file card's durable coordinates to a path
   - `GET /api/dsh-docdesk/mermaid.js` — the bundled Mermaid runtime
-- **Client half** (`client.js`) registers the **资料区** sidebar entry, the panel, the middle-edge sidebar handle and the delivered-file action. It renders the desktop, the picker, folders, the tabbed reader and the per-type viewers: Markdown renderer, monospace text reader, sandboxed HTML frame, image, PDF, audio and video. The path bar's **Reveal** action opens the system file manager through the host Session's `openWorkspacePath({ action: 'reveal' })`.
+- **Client half** (`client.js`) registers the **资料区** sidebar entry, the panel, the middle-edge sidebar handle and the delivered-file action. It renders the desktop, the picker, folders, the tabbed reader and the per-type viewers: Markdown renderer, monospace text reader, sandboxed HTML frame, image, PDF, audio and video. The path bar's **Reveal** action opens the system file manager through the host Session's `openWorkspacePath({ action: 'reveal' })`, falling back to the Host route `/api/dsh-docdesk/reveal`.
 
 Data and limits:
 

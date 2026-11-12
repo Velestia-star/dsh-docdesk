@@ -176,9 +176,10 @@ Markdown 里的 GFM 管道表格也会渲染成真表格，支持 `:---`、`:---
   - `GET /api/dsh-docdesk/read?path=<绝对路径>` —— 单个文本文件的内容（上限 2 MB）
   - `GET /api/dsh-docdesk/file?path=<绝对路径>` —— 白名单文件的原始字节；音频/视频支持 HTTP `Range` 拖动进度，`download=1` 返回附件下载响应
   - `GET /api/dsh-docdesk/site/<rootToken>/<相对路径>` —— HTML 文件同工作区根目录下的 CSS、JS、图片等资源；`<rootToken>` 是工作区根目录 id 的 base64url 编码
+  - `GET /api/dsh-docdesk/reveal?path=<绝对路径>` —— 在系统文件管理器中显示并选中该文件（优先调用宿主的 `sessionController.openWorkspacePath`，不可用时回退到原生 `explorer.exe` / `open -R` / `xdg-open`）
   - `GET /api/dsh-docdesk/resolve?sessionId=…&seq=…&index=…` —— 把生成文件卡片的坐标解析成路径
   - `GET /api/dsh-docdesk/mermaid.js` —— 内置的 Mermaid 运行时
-- **客户端半**（`client.js`）注册 **资料区** 侧边栏入口、面板、左边缘侧栏手柄和生成文件动作，负责桌面、选择器、文件夹、标签页阅读器，以及按类型分发的阅读器：Markdown 渲染器、等宽文本阅读器、HTML 沙箱、图片、PDF、音频和视频。路径栏的「定位」通过宿主 Session 的 `openWorkspacePath({ action: 'reveal' })` 打开系统文件管理器。
+- **客户端半**（`client.js`）注册 **资料区** 侧边栏入口、面板、左边缘侧栏手柄和生成文件动作，负责桌面、选择器、文件夹、标签页阅读器，以及按类型分发的阅读器：Markdown 渲染器、等宽文本阅读器、HTML 沙箱、图片、PDF、音频和视频。路径栏的「定位」优先通过宿主 Session 的 `openWorkspacePath({ action: 'reveal' })` 打开系统文件管理器，不可用时回退到宿主的 `/api/dsh-docdesk/reveal`。
 
 数据与限制：
 
