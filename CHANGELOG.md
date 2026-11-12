@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.1 — 2026-11-12
+
+- Hidden files (`.env`, `.github`, `.vscode`, …) are no longer listed by the picker, and `read` now rejects hidden dot-segments exactly like `file` and `site` already did; `site` also checks the resolved target, closing the symlink-to-hidden-file gap.
+- The fence now rejects the common forwarding headers too (`Forwarded`, `X-Real-IP`, `X-Forwarded-Host`, `X-Forwarded-Proto`), matching the README.
+- The image viewer keeps separate refs for the inline stage and the full-screen layer, so Shift+wheel zoom keeps working after entering and leaving full screen.
+- The built-in guide now describes click-to-full-screen instead of the old actual-size toggle.
+- The external-text fallback truncates on UTF-8 bytes (2 MB), matching the host reader and the README.
+- `resolve` answers 405 for non-GET/HEAD requests, like the other routes.
+- `read` accepts file names that merely start with `..` (for example `..notes.txt`); only real parent traversal counts as outside the workspace.
+- README: `read` is described as returning text content or non-text preview metadata.
+
 ## 0.6.0 — 2026-11-12
 
 - Fixed Shift+wheel zoom after entering the image full-screen layer. Windows browsers report Shift+wheel as a horizontal delta (`deltaX`), so the zoom now falls back to `deltaX` when `deltaY` is zero; zooming works in both the inline stage and the full-screen layer.

@@ -6,6 +6,8 @@
  *   GET  /api/dsh-docdesk/read?path=<absolute path>
  *   GET  /api/dsh-docdesk/file?path=<absolute path>[&download=1]   (bytes, Range)
  *   GET  /api/dsh-docdesk/site/<base64url(root.id)>/<relative path> (HTML siblings)
+ *   GET  /api/dsh-docdesk/resolve?sessionId=…&seq=…&index=…
+ *   GET  /api/dsh-docdesk/mermaid.js
  *
  * The scan covers every registered workspace, the profile's default working
  * directory, and the working directories of live agents, so materials an agent
@@ -198,7 +200,15 @@ function isLoopbackHostname(hostname) {
 }
 
 function isProxiedRequest(request) {
-  return request.headers['cf-connecting-ip'] !== undefined || request.headers['x-forwarded-for'] !== undefined
+  const headers = request.headers
+  return (
+    headers['cf-connecting-ip'] !== undefined ||
+    headers['x-forwarded-for'] !== undefined ||
+    headers['x-real-ip'] !== undefined ||
+    headers['x-forwarded-host'] !== undefined ||
+    headers['x-forwarded-proto'] !== undefined ||
+    headers.forwarded !== undefined
+  )
 }
 
 /** Loopback socket, no forwarding hop, loopback Host header, same-origin markers. */
@@ -373,6 +383,7 @@ async function scanRoots(roots) {
           continue
         }
         if (!entry.isFile()) continue
+        if (entry.name.startsWith('.')) continue
         const kind = kindOfFile(entry.name)
         if (kind === null) continue
         /* Assets never crowd documents out: past the cap the scan keeps walking
@@ -483,7 +494,12 @@ function requestUrl(request) {
 
 function isInside(root, target) {
   const relative = path.relative(root, target)
-  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative)
+  return relative !== '' && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)
+}
+
+/** True when any path segment below the root starts with a dot. */
+function hasHiddenSegment(root, target) {
+  return path.relative(root, target).split(path.sep).some((segment) => segment.startsWith('.'))
 }
 
 /**
@@ -659,6 +675,10 @@ async function handleRead(ctx, request, response) {
     sendJson(response, 403, { error: 'outside-workspace' })
     return
   }
+  if (hasHiddenSegment(located.realRoot, located.realTarget)) {
+    sendJson(response, 403, { error: 'hidden-path' })
+    return
+  }
   let stat
   try {
     stat = await fs.stat(located.realTarget)
@@ -771,8 +791,7 @@ async function handleFile(ctx, request, response) {
       continue
     }
     if (!isInside(realRoot, realTarget)) continue
-    const segments = path.relative(realRoot, realTarget).split(path.sep)
-    if (segments.some((segment) => segment.startsWith('.'))) {
+    if (hasHiddenSegment(realRoot, realTarget)) {
       sendJson(response, 403, { error: 'hidden-path' })
       return
     }
@@ -883,6 +902,10 @@ async function handleSite(ctx, request, response) {
     sendJson(response, 403, { error: 'outside-workspace' })
     return
   }
+  if (hasHiddenSegment(realRoot, realTarget)) {
+    sendJson(response, 403, { error: 'hidden-path' })
+    return
+  }
   let stat
   try {
     stat = await fs.stat(realTarget)
@@ -934,6 +957,11 @@ function isPresentedFile(value) {
 async function handleResolve(ctx, request, response) {
   if (!isAllowed(ctx, request)) {
     sendJson(response, 403, { error: 'forbidden' })
+    return
+  }
+  if (request.method && request.method !== 'GET' && request.method !== 'HEAD') {
+    response.writeHead(405, { allow: 'GET, HEAD' })
+    response.end()
     return
   }
   const url = requestUrl(request)

@@ -24,7 +24,7 @@ window.__ModuleLoader__.load({
 ## 文件类型
 - 文档：Markdown、纯文本、代码与配置文件。
 - 网页：HTML 在沙箱里打开，同目录的样式、脚本和图片会一起加载；fetch/XHR 请求和表单提交被禁止。
-- 图片：JPG、PNG、GIF、WebP、SVG 等，点图片可以切换原始大小。
+- 图片：JPG、PNG、GIF、WebP、SVG 等；Shift+滚轮缩放，点图片进入全屏（沉浸模式铺满屏幕，普通模式铺满面板），再点或按 Esc 退出。
 - 其他：PDF 用浏览器阅读器打开，音频和视频可以直接播放。
 - 办公文档、压缩包等无法在浏览器里预览的格式不会出现在「添加文件」里。
 
@@ -538,7 +538,7 @@ window.__ModuleLoader__.load({
     }
 
     const DSH_FILE_ROUTE = '/api/file'
-    const MAX_TEXT_CHARS = 2 * 1024 * 1024
+    const MAX_TEXT_BYTES = 2 * 1024 * 1024
 
     function fileUrl(value, download) {
       return `${API_FILE}?path=${encodeURIComponent(value)}${download ? '&download=1' : ''}`
@@ -579,9 +579,15 @@ window.__ModuleLoader__.load({
         throw new Error(response.status === 401 || response.status === 403 ? t('error.externalDenied') : `HTTP ${response.status}`)
       }
       let content = await response.text()
-      const truncated = content.length > MAX_TEXT_CHARS
-      if (truncated) content = content.slice(0, MAX_TEXT_CHARS)
-      return { ...base, content, truncated, size: truncated ? undefined : content.length }
+      const bytes = new TextEncoder().encode(content)
+      let truncated = false
+      if (bytes.byteLength > MAX_TEXT_BYTES) {
+        content = new TextDecoder().decode(bytes.subarray(0, MAX_TEXT_BYTES))
+        /* A multi-byte character cut at the boundary leaves a replacement char. */
+        content = content.replace(/\uFFFD$/u, '')
+        truncated = true
+      }
+      return { ...base, content, truncated, size: bytes.byteLength }
     }
 
     function versionedUrl(url, version) {
@@ -2567,7 +2573,8 @@ body.dsd-immersive { overflow:hidden !important; }
       const pickerToken = useRef(0)
       const docCache = useRef(new Map())
       const docAbort = useRef(null)
-      const mediaRef = useRef(null)
+      const imageStageRef = useRef(null)
+      const imageFullStageRef = useRef(null)
       const normalColumnsRef = useRef(0)
       const gridMetricsRef = useRef(null)
       const skipGridLayoutRef = useRef(false)
@@ -2791,7 +2798,7 @@ body.dsd-immersive { overflow:hidden !important; }
       const readable = activeKind === 'markdown' || activeKind === 'text'
       useEffect(() => {
         if (activeKind !== 'image' || !docReady) return undefined
-        const node = mediaRef.current
+        const node = imageFull ? imageFullStageRef.current : imageStageRef.current
         if (!node) return undefined
         const onWheel = (event) => {
           if (!event.shiftKey) return
@@ -4689,7 +4696,7 @@ body.dsd-immersive { overflow:hidden !important; }
           { className: 'dsd-image-full', role: 'dialog', 'aria-modal': true, 'aria-label': t('doc.imageFull') },
           h(
             'div',
-            { className: 'dsd-image-full-stage', ref: mediaRef, 'data-zoom': zoomed ? 'true' : 'false' },
+            { className: 'dsd-image-full-stage', ref: imageFullStageRef, 'data-zoom': zoomed ? 'true' : 'false' },
             h('img', {
               className: 'dsd-image-full-img',
               src: mediaUrl,
@@ -4819,7 +4826,7 @@ body.dsd-immersive { overflow:hidden !important; }
                 : docReady
                   ? h(
                       'div',
-                      { className: 'dsd-image-stage', ref: mediaRef, 'data-zoom': zoomed ? 'true' : 'false' },
+                      { className: 'dsd-image-stage', ref: imageStageRef, 'data-zoom': zoomed ? 'true' : 'false' },
                       mediaError
                         ? h(
                             'div',

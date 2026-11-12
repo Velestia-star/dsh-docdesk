@@ -173,7 +173,7 @@ The bundle has two halves:
 
 - **Host half** (`index.js`) scans registered workspaces, the profile's default working directory and live agent working directories for previewable files — Markdown, text/code, HTML, images, PDF, audio and video. It serves them through read-only routes:
   - `GET /api/dsh-docdesk/list` — candidate files for the picker, each with its kind
-  - `GET /api/dsh-docdesk/read?path=<absolute path>` — one text file's content (2 MB cap)
+  - `GET /api/dsh-docdesk/read?path=<absolute path>` — text content (2 MB cap), or the preview URL and metadata for HTML, images, PDF and media
   - `GET /api/dsh-docdesk/file?path=<absolute path>` — raw bytes for a whitelisted file; supports HTTP `Range` for audio/video seeking, and `download=1` for an attachment response
   - `GET /api/dsh-docdesk/site/<rootToken>/<relative path>` — an HTML file's sibling assets (CSS, JS, images) from the same workspace root; `<rootToken>` is the base64url-encoded workspace root id
   - `GET /api/dsh-docdesk/resolve?sessionId=…&seq=…&index=…` — resolve a delivered file card's durable coordinates to a path

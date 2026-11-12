@@ -173,7 +173,7 @@ Markdown 里的 GFM 管道表格也会渲染成真表格，支持 `:---`、`:---
 
 - **宿主半**（`index.js`）扫描已登记的工作区、默认工作目录和活动智能体的工作目录，收集可预览的文件——Markdown、纯文本/代码、HTML、图片、PDF、音频和视频，并通过只读路由提供：
   - `GET /api/dsh-docdesk/list` —— 选择器用的候选文件，带每条文件的类型
-  - `GET /api/dsh-docdesk/read?path=<绝对路径>` —— 单个文本文件的内容（上限 2 MB）
+  - `GET /api/dsh-docdesk/read?path=<绝对路径>` —— 文本内容（上限 2 MB），或 HTML、图片、PDF、音视频的预览 URL 与元数据
   - `GET /api/dsh-docdesk/file?path=<绝对路径>` —— 白名单文件的原始字节；音频/视频支持 HTTP `Range` 拖动进度，`download=1` 返回附件下载响应
   - `GET /api/dsh-docdesk/site/<rootToken>/<相对路径>` —— HTML 文件同工作区根目录下的 CSS、JS、图片等资源；`<rootToken>` 是工作区根目录 id 的 base64url 编码
   - `GET /api/dsh-docdesk/resolve?sessionId=…&seq=…&index=…` —— 把生成文件卡片的坐标解析成路径
