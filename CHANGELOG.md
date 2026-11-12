@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2 — 2026-11-12
+
+- Clicking an image now opens it in a full-screen layer instead of switching to actual size. The layer is positioned inside the panel, so in immersive mode it fills the whole screen, while in the normal layout it fills the library panel. Click the image again, press <kbd>Esc</kbd>, or use the floating **Exit full screen** button to leave.
+- Shift+wheel keeps zooming (20%–600%) inside the full-screen layer, the current percentage and the exit hint sit at the bottom, and entering/exiting does not disturb the image scale you had set.
+- The in-app guide, both READMEs, the plugin metadata and the market description now describe click-to-full-screen.
+
 ## 0.5.1 — 2026-11-12
 
 - **Reveal** now works even when the browser Session remote rejects the path or is unavailable. The reader first tries `session.openWorkspacePath({ action: 'reveal' })`; when that fails it calls the new Host route `GET /api/dsh-docdesk/reveal?path=…`, which asks the Host's `sessionController` to reveal the file and otherwise opens the platform file manager natively (`explorer.exe /select,` on Windows, `open -R` on macOS, `xdg-open` on Linux). A failed reveal now reports the reason in the toast.

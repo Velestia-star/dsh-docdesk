@@ -43,7 +43,7 @@ window.__ModuleLoader__.load({
 ## 阅读
 - 双击文件打开；顶部标签切换文件，「资料区」回主页。
 - Markdown 照常渲染表格、图表和 Mermaid；纯文本与代码用等宽滚动阅读器打开；图片、PDF、音频、视频各用自己的阅读界面。
-- 图片按住 Shift 滚轮可以平滑缩放；点一下在「适应窗口」和「原始大小」之间切换。
+- 图片按住 Shift 滚轮可以平滑缩放；点图片进入全屏（沉浸模式下铺满屏幕，普通模式铺满面板），再点图片或按 Esc 退出。
 - 路径栏按钮下面带小字：定位、复制、重读、打开、下载、沉浸。点「定位」会在系统文件管理器中显示当前文件；网页和 PDF 只能在沙箱或浏览器阅读器里看，需要保存时点下载。
 - 按 F 进入或退出沉浸阅读；Esc 也可以退出。沉浸中每行图标数和普通模式相同，横向间距会拉大；退出后回到原来的位置。
 - 按 B 或在右侧书签按钮添加书签（只对 Markdown）；书签面板可以跳转、改标题、写备注、删除。
@@ -168,10 +168,11 @@ window.__ModuleLoader__.load({
       'doc.download': '下载',
       'doc.htmlHint': '网页在沙箱中打开：脚本可以运行，但 fetch/XHR 请求、表单提交和跳出阅读器都被禁止。',
       'doc.pdfHint': '使用浏览器内置的 PDF 阅读器；需要保存时可以点下载。',
-      'doc.imageHint': '点击图片可在「适应窗口」和「原始大小」之间切换。',
-      'doc.imageZoomIn': '原始大小',
-      'doc.imageZoomOut': '适应窗口',
-      'doc.imageHint': 'Shift+滚轮缩放，点图片切换适应窗口 / 原始大小。',
+      'doc.imageHint': 'Shift+滚轮缩放；点图片进入全屏，再点或按 Esc 退出。',
+      'doc.imageEnterFull': '全屏查看',
+      'doc.imageFull': '图片全屏',
+      'doc.imageFullExit': '退出全屏',
+      'doc.imageFullHint': 'Shift+滚轮缩放 · 点击图片或按 Esc 退出',
       'bar.copy': '复制',
       'bar.reload': '重读',
       'bar.reveal': '定位',
@@ -343,10 +344,11 @@ window.__ModuleLoader__.load({
       'doc.download': 'Download',
       'doc.htmlHint': 'This page opens in a sandbox: scripts run, while fetch/XHR requests, form submits and escaping the reader are blocked.',
       'doc.pdfHint': 'Rendered by the browser’s built-in PDF viewer; use Download to save a copy.',
-      'doc.imageHint': 'Click the image to switch between fit-to-window and actual size.',
-      'doc.imageZoomIn': 'Actual size',
-      'doc.imageZoomOut': 'Fit to window',
-      'doc.imageHint': 'Shift+wheel zooms smoothly; click the image to switch between fit and actual size.',
+      'doc.imageHint': 'Shift+wheel zooms; click the image for full screen, click again or press Esc to exit.',
+      'doc.imageEnterFull': 'Full screen',
+      'doc.imageFull': 'Image full screen',
+      'doc.imageFullExit': 'Exit full screen',
+      'doc.imageFullHint': 'Shift+wheel zooms · click the image or press Esc to exit',
       'bar.copy': 'Copy',
       'bar.reload': 'Reload',
       'bar.reveal': 'Reveal',
@@ -2279,6 +2281,13 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-media[data-zoom=true] { align-items:flex-start; }
 .dsd-media-image { display:block; max-width:100%; max-height:calc(100vh - 300px); object-fit:contain; border-radius:10px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:repeating-conic-gradient(color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 4%, transparent) 0% 25%, transparent 0% 50%) 50%/18px 18px; cursor:zoom-in; }
 .dsd-media[data-zoom=true] .dsd-media-image { cursor:zoom-out; }
+.dsd-image-full { position:absolute; inset:0; z-index:78; display:flex; flex-direction:column; background:color-mix(in srgb, var(--dsw-alias-bg-base,#fff) 97%, transparent); }
+.dsd-image-full-stage { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; overflow:auto; padding:14px 16px 46px; }
+.dsd-image-full-stage[data-zoom=true] { align-items:flex-start; justify-content:flex-start; }
+.dsd-image-full-img { display:block; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; cursor:zoom-out; }
+.dsd-image-full-hint { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); max-width:calc(100% - 220px); padding:4px 11px; border-radius:999px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dsd-image-full-exit { position:absolute; top:10px; right:12px; display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 10px; border-radius:999px; border:1px solid var(--dsw-alias-border-l2,#d0d0d8); background:var(--dsw-alias-bg-layer-2,#fff); color:var(--dsw-alias-label-primary,#1b1b1f); font:inherit; font-size:11.5px; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,.16); }
+.dsd-image-full-exit:hover { background:var(--dsw-alias-bg-layer-1,#f6f6f8); }
 .dsd-media-badge { display:flex; align-items:center; justify-content:center; width:76px; height:76px; border-radius:20px; border:1px solid var(--dsw-alias-border-l1,#e4e4ea); background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#2f6fed) 10%, var(--dsw-alias-bg-layer-1,#f6f6f8)); color:var(--dsw-alias-state-business-primary,#2f6fed); }
 .dsd-media-title { font-size:13px; font-weight:600; text-align:center; word-break:break-all; }
 .dsd-media-note { max-width:620px; color:var(--dsw-alias-label-secondary,#6b6b76); font-size:11px; line-height:1.6; text-align:center; }
@@ -2536,6 +2545,7 @@ body.dsd-immersive { overflow:hidden !important; }
       const [doc, setDoc] = useState({ status: 'idle' })
       const [docReload, setDocReload] = useState(0)
       const [imageScale, setImageScale] = useState(1)
+      const [imageFull, setImageFull] = useState(false)
       const [mediaError, setMediaError] = useState(false)
       const [search, setSearch] = useState('')
       const [toast, setToast] = useState(null)
@@ -2801,7 +2811,7 @@ body.dsd-immersive { overflow:hidden !important; }
         }
         node.addEventListener('wheel', onWheel, { passive: false })
         return () => node.removeEventListener('wheel', onWheel)
-      }, [activeKind, docReady, activePath, docReload, mediaError])
+      }, [activeKind, docReady, activePath, docReload, mediaError, imageFull])
       const lastPosition = activePath ? bookmarkStore.getState().positions[activePath] || null : null
       const activeBookmarks = useMemo(() => {
         if (!activePath) return []
@@ -3187,6 +3197,7 @@ body.dsd-immersive { overflow:hidden !important; }
 
       useEffect(() => {
         setImageScale(1)
+        setImageFull(false)
         setMediaError(false)
       }, [activePath, docReload])
 
@@ -3922,6 +3933,10 @@ body.dsd-immersive { overflow:hidden !important; }
             return
           }
           if (event.key === 'Escape') {
+            if (imageFull) {
+              event.preventDefault()
+              return setImageFull(false)
+            }
             if (menu) return setMenu(null)
             if (renaming) {
               renameRef.current = null
@@ -3952,7 +3967,7 @@ body.dsd-immersive { overflow:hidden !important; }
         }
         document.addEventListener('keydown', onKey)
         return () => document.removeEventListener('keydown', onKey)
-      }, [menu, renaming, confirmState, picker.open, selected, library.activeTab, deleteSelection, closePicker, immersive, toggleImmersive, exitImmersive, bookmarksOpen, docMenu, activePath, activeKind, docReady, addBookmark])
+      }, [menu, renaming, confirmState, picker.open, selected, library.activeTab, deleteSelection, closePicker, immersive, toggleImmersive, exitImmersive, bookmarksOpen, docMenu, activePath, activeKind, docReady, imageFull, addBookmark])
 
       const chain = useMemo(() => folderChain(library.folders, currentFolder), [library.folders, currentFolder])
       const pathSegments = useMemo(() => {
@@ -4703,14 +4718,62 @@ body.dsd-immersive { overflow:hidden !important; }
         )
       }
 
+      const mediaUrlFor = (docValue, pathValue) => {
+        const value = docValue && docValue.status === 'ready' && docValue.url ? docValue.url : fileUrl(pathValue)
+        return docValue && docValue.external ? `${value}${value.includes('?') ? '&' : '?'}r=${docReload}` : versionedUrl(value, docReload)
+      }
+
+      const renderImageFull = () => {
+        if (!activePath) return null
+        const mediaUrl = mediaUrlFor(doc, activePath)
+        const zoomed = imageScale !== 1
+        return h(
+          'div',
+          { className: 'dsd-image-full', role: 'dialog', 'aria-modal': true, 'aria-label': t('doc.imageFull') },
+          h(
+            'div',
+            { className: 'dsd-image-full-stage', ref: mediaRef, 'data-zoom': zoomed ? 'true' : 'false' },
+            h('img', {
+              className: 'dsd-image-full-img',
+              src: mediaUrl,
+              alt: doc.name || basename(activePath),
+              draggable: false,
+              style: zoomed ? { width: `${imageScale * 100}%`, maxWidth: 'none', maxHeight: 'none' } : undefined,
+              title: t('doc.imageFullExit'),
+              onClick: () => setImageFull(false),
+              onError: () => {
+                setMediaError(true)
+                setImageFull(false)
+              },
+            }),
+          ),
+          h(
+            'div',
+            { className: 'dsd-image-full-hint' },
+            `${imageScale === 1 ? '' : `${Math.round(imageScale * 100)}% · `}${t('doc.imageFullHint')}`,
+          ),
+          h(
+            'button',
+            {
+              className: 'dsd-image-full-exit',
+              type: 'button',
+              title: t('doc.imageFullExit'),
+              'aria-label': t('doc.imageFullExit'),
+              onClick: () => setImageFull(false),
+            },
+            icon('collapse', 14),
+            h('span', null, t('doc.imageFullExit')),
+          ),
+        )
+      }
+
       const renderDoc = () => {
         if (!activeItem) return null
         const kind = activeKind || 'markdown'
         const canRead = kind === 'markdown' || kind === 'text'
         const pathSeparator = Math.max(activePath.lastIndexOf('\\'), activePath.lastIndexOf('/'))
         const docDir = activePath === GUIDE_PATH || pathSeparator <= 0 ? '' : activePath.slice(0, pathSeparator)
-        const docUrl = docReady && doc.url ? doc.url : fileUrl(activePath)
-        const mediaUrl = doc.external ? `${docUrl}${docUrl.includes('?') ? '&' : '?'}r=${docReload}` : versionedUrl(docUrl, docReload)
+        const mediaUrl = mediaUrlFor(doc, activePath)
         const kindLabel = (KIND_CHIP[kind] || fileExt(activePath).toUpperCase() || 'FILE')
         const meta = `${kindLabel} · ${formatSize(docReady ? doc.size : 0)} · ${formatTime(doc.mtime)}`
         const openExternal = () => {
@@ -4785,19 +4848,8 @@ body.dsd-immersive { overflow:hidden !important; }
                 alt: doc.name || basename(activePath),
                 draggable: false,
                 style: zoomed ? { width: `${imageScale * 100}%`, maxWidth: 'none', maxHeight: 'none' } : undefined,
-                title: zoomed ? t('doc.imageZoomOut') : t('doc.imageZoomIn'),
-                onClick: (event) => {
-                  const element = event.currentTarget
-                  if (imageScale !== 1) {
-                    setImageScale(1)
-                    return
-                  }
-                  const parent = element.parentElement
-                  const parentWidth = parent ? parent.clientWidth : 0
-                  if (parentWidth > 0 && element.naturalWidth > 0) {
-                    setImageScale(Math.min(6, Math.max(0.1, Math.round((element.naturalWidth / parentWidth) * 100) / 100)))
-                  }
-                },
+                title: t('doc.imageEnterFull'),
+                onClick: () => setImageFull(true),
                 onError: () => setMediaError(true),
               }),
               h('div', { className: 'dsd-media-note' }, imageScale === 1 ? t('doc.imageHint') : `${Math.round(imageScale * 100)}% · ${t('doc.imageHint')}`),
@@ -5189,6 +5241,7 @@ body.dsd-immersive { overflow:hidden !important; }
           ),
         ),
         activePath && activeItem ? renderDoc() : renderHome(),
+        imageFull && activePath && activeKind === 'image' && docReady ? renderImageFull() : null,
         immersive
           ? h(
               'button',
