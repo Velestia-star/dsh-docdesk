@@ -16,7 +16,7 @@ The plugin never moves, renames or deletes anything on disk.
 
 ## Features
 
-- **Add files explicitly.** The **Add files** button opens a workspace picker with search, type filters and multi-select. Every previewable format is listed; entries already in the library are marked and cannot be added twice.
+- **Add files explicitly.** The **Add files** button opens a workspace picker with search, type filters and multi-select. Every previewable format is listed; entries already in the library are marked and cannot be added twice. The list is virtualized, so a workspace with thousands of files still mounts only the visible rows.
 - **Picker preview.** The eye button on each row opens a preview dialog: Markdown renders inline (tables, code blocks and Mermaid included), text/code uses the monospace reader, images show a thumbnail, HTML runs in the sandbox with same-folder assets, PDF uses the browser viewer, and audio/video play natively. The footer can add the file to the library in one click; previewing never changes the current selection or touches the file.
 - **Type-aware library.** Each entry shows a format icon on the desktop grid and on its document tab. Picker rows carry a type chip, and filter chips beside the search box narrow the list to All / Documents / Images / Web / PDF / Media / Other.
 - **Add from a file card.** A delivered file card gains an **Add to library** action; right-clicking the card opens a small menu with the same action. When the file's format cannot be previewed in a browser, the action reports it as unsupported instead of adding it. If your host does not render deliverable file cards, the picker is always available.

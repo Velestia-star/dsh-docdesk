@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1 — 2026-11-12
+
+- The add-files picker now virtualizes its list: only the visible rows plus a small overscan are mounted, with one fixed-height spacer standing in for the rest. A 1,900-file workspace renders about a dozen rows instead of all of them, scrolling stays responsive, and changing the search or filter resets the list to the top.
+- Row height is fixed at 48 px so the virtual window matches the DOM; the preview, selection and "already added" states are unchanged, and previews still work on rows reached by scrolling.
+
 ## 0.7.0 — 2026-11-12
 
 - The add-files picker now has a **Preview** action on every row. It opens a preview dialog with the file's content or media: Markdown renders with tables, code blocks and Mermaid, text/code uses the monospace reader, images show a thumbnail, HTML runs in the sandbox with same-folder assets, PDF uses the browser viewer, and audio/video play natively. The footer can add the file to the library in one click.

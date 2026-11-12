@@ -521,6 +521,25 @@ window.__ModuleLoader__.load({
     const DSH_FILE_ROUTE = '/api/file'
     const MAX_TEXT_BYTES = 2 * 1024 * 1024
 
+    const PICKER_ROW_HEIGHT = 48
+    const PICKER_OVERSCAN = 6
+
+    /**
+     * Visible slice for the virtualised picker list. `start`/`end` are clamped
+     * to the row count; overscan keeps a few rows above and below the viewport
+     * mounted so fast scrolling does not flash blank space.
+     */
+    function virtualRange(total, scrollTop, viewportHeight, rowHeight, overscan) {
+      const count = Math.max(0, Math.floor(Number(total) || 0))
+      const height = Math.max(1, Math.floor(Number(rowHeight) || 1))
+      const top = Math.max(0, Number(scrollTop) || 0)
+      const viewport = Math.max(0, Number(viewportHeight) || 0)
+      const margin = Math.max(0, Math.floor(Number(overscan) || 0))
+      const start = Math.min(count, Math.max(0, Math.floor(top / height) - margin))
+      const end = Math.min(count, Math.max(start, Math.ceil((top + viewport) / height) + margin))
+      return { start, end }
+    }
+
     function fileUrl(value, download) {
       return `${API_FILE}?path=${encodeURIComponent(value)}${download ? '&download=1' : ''}`
     }
@@ -2327,8 +2346,10 @@ body.dsd-immersive { overflow:hidden !important; }
 .dsd-picker-title { margin:0; font-size:15px; font-weight:700; }
 .dsd-picker-sub { margin-top:2px; font-size:11.5px; color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-picker-tools { flex:none; display:flex; align-items:center; gap:8px; padding:10px 16px 6px; }
-.dsd-picker-list { flex:1; min-height:0; overflow:auto; padding:0 10px 10px; scrollbar-width:thin; }
-.dsd-picker-row { display:flex; align-items:center; gap:10px; width:100%; padding:8px 10px; border-radius:8px; background:transparent; color:inherit; font:inherit; text-align:left; cursor:default; }
+.dsd-picker-list { position:relative; flex:1; min-height:0; overflow:auto; padding:0 10px 10px; scrollbar-width:thin; }
+.dsd-picker-virtual { position:relative; width:100%; }
+.dsd-picker-slot { position:absolute; left:0; right:0; height:48px; }
+.dsd-picker-row { display:flex; align-items:center; gap:10px; width:100%; height:100%; box-sizing:border-box; padding:8px 10px; border-radius:8px; background:transparent; color:inherit; font:inherit; text-align:left; cursor:default; }
 .dsd-picker-row:hover { background:color-mix(in srgb, var(--dsw-alias-label-primary,#1b1b1f) 7%, transparent); }
 .dsd-picker-row[data-added=true] .dsd-picker-name { color:var(--dsw-alias-label-secondary,#6b6b76); }
 .dsd-picker-check { display:flex; align-items:center; justify-content:center; width:17px; height:17px; flex:none; padding:0; border-radius:5px; border:1px solid var(--dsw-alias-border-l2,#d0d0d8); background:transparent; color:transparent; cursor:pointer; }
@@ -2572,6 +2593,7 @@ body.dsd-immersive { overflow:hidden !important; }
       const [picker, setPicker] = useState({ open: false, status: 'idle', files: [], roots: [], truncated: false, partial: false, error: null, query: '', filter: 'all', staleHost: false, selected: new Set() })
       const [previewFile, setPreviewFile] = useState(null)
       const [previewDoc, setPreviewDoc] = useState({ status: 'idle' })
+      const [pickerView, setPickerView] = useState({ top: 0, height: 520 })
       const [doc, setDoc] = useState({ status: 'idle' })
       const [docReload, setDocReload] = useState(0)
       const [imageScale, setImageScale] = useState(1)
@@ -2604,6 +2626,8 @@ body.dsd-immersive { overflow:hidden !important; }
       const renameRef = useRef(null)
       const toastTimer = useRef(0)
       const pickerToken = useRef(0)
+      const pickerListRef = useRef(null)
+      const pickerScrollFrame = useRef(0)
       const previewCache = useRef(new Map())
       const docCache = useRef(new Map())
       const docAbort = useRef(null)
@@ -3419,6 +3443,54 @@ body.dsd-immersive { overflow:hidden !important; }
           })
         return () => controller.abort()
       }, [previewFile])
+
+      useLayoutEffect(() => {
+        if (!picker.open) return undefined
+        const node = pickerListRef.current
+        if (!node) return undefined
+        const measure = () =>
+          setPickerView((previous) => {
+            const height = node.clientHeight
+            return previous.height === height ? previous : { ...previous, height }
+          })
+        measure()
+        let observer
+        if (typeof ResizeObserver === 'function') {
+          observer = new ResizeObserver(measure)
+          observer.observe(node)
+        } else {
+          window.addEventListener('resize', measure)
+        }
+        return () => {
+          if (observer) observer.disconnect()
+          else window.removeEventListener('resize', measure)
+        }
+      }, [picker.open])
+
+      useEffect(() => {
+        if (!picker.open) return
+        const node = pickerListRef.current
+        if (!node) return
+        if (node.scrollTop !== 0) node.scrollTop = 0
+        setPickerView((previous) => (previous.top === 0 ? previous : { ...previous, top: 0 }))
+      }, [picker.open, picker.query, picker.filter, picker.status])
+
+      const onPickerScroll = useCallback((event) => {
+        const node = event.currentTarget
+        if (pickerScrollFrame.current) return
+        pickerScrollFrame.current = window.requestAnimationFrame(() => {
+          pickerScrollFrame.current = 0
+          const top = node.scrollTop
+          setPickerView((previous) => (Math.abs(previous.top - top) < PICKER_ROW_HEIGHT / 2 ? previous : { ...previous, top }))
+        })
+      }, [])
+
+      useEffect(
+        () => () => {
+          if (pickerScrollFrame.current) window.cancelAnimationFrame(pickerScrollFrame.current)
+        },
+        [],
+      )
 
       const addPreviewFile = useCallback(() => {
         if (!previewFile) return
@@ -5266,6 +5338,52 @@ body.dsd-immersive { overflow:hidden !important; }
         )
       }
 
+      const renderPickerRow = (file, index) => {
+        const inLibrary = Boolean(library.items[file.path])
+        const checked = picker.selected.has(file.path)
+        return h(
+          'div',
+          { key: file.path, className: 'dsd-picker-slot', style: { top: `${index * PICKER_ROW_HEIGHT}px` } },
+          h(
+            'div',
+            { className: 'dsd-picker-row', 'data-added': inLibrary ? 'true' : 'false' },
+            h(
+              'button',
+              {
+                className: 'dsd-picker-check',
+                type: 'button',
+                role: 'checkbox',
+                'aria-checked': checked ? 'true' : 'false',
+                'aria-label': file.name,
+                disabled: inLibrary,
+                onClick: () => togglePicked(file.path),
+              },
+              checked ? icon('check', 12) : null,
+            ),
+            h('span', { className: 'dsd-picker-kind', 'data-kind': file.kind || fileKind(file.path) }, fileKindChip(file.path)),
+            h(
+              'button',
+              { className: 'dsd-picker-text', type: 'button', onClick: () => (inLibrary ? openPreview(file) : togglePicked(file.path)) },
+              h('span', { className: 'dsd-picker-name' }, file.name),
+              h('span', { className: 'dsd-picker-path', title: file.path }, `${file.rootTitle} / ${file.rel}`),
+            ),
+            h(
+              'button',
+              {
+                className: 'dsd-picker-preview',
+                type: 'button',
+                title: t('picker.preview'),
+                'aria-label': `${t('picker.preview')} ${file.name}`,
+                onClick: () => openPreview(file),
+              },
+              icon('eye', 13),
+            ),
+            inLibrary ? h('span', { className: 'dsd-picker-added' }, t('picker.added')) : null,
+            h('span', { className: 'dsd-picker-meta' }, `${formatTime(file.mtime)} · ${formatSize(file.size)}`),
+          ),
+        )
+      }
+
       const renderPreview = () => {
         if (!previewFile) return null
         const kind = previewDoc.status === 'ready' ? previewDoc.kind : fileKind(previewFile.path)
@@ -5383,6 +5501,7 @@ body.dsd-immersive { overflow:hidden !important; }
         const selectedCount = picker.selected.size
         const visibleAddable = pickerRows.filter((file) => !library.items[file.path])
         const allVisibleSelected = visibleAddable.length > 0 && visibleAddable.every((file) => picker.selected.has(file.path))
+        const pickerViewRange = virtualRange(pickerRows.length, pickerView.top, pickerView.height, PICKER_ROW_HEIGHT, PICKER_OVERSCAN)
         return h(
           'div',
           { className: 'dsd-picker', onPointerDown: (event) => { if (event.target === event.currentTarget) closePicker() } },
@@ -5456,7 +5575,7 @@ body.dsd-immersive { overflow:hidden !important; }
             picker.staleHost ? h('div', { className: 'dsd-picker-warn' }, icon('refresh', 13), h('span', null, t('picker.staleHost'))) : null,
             h(
               'div',
-              { className: 'dsd-picker-list' },
+              { className: 'dsd-picker-list', ref: pickerListRef, onScroll: onPickerScroll },
               picker.status === 'loading' ? h('div', { className: 'dsd-picker-status' }, t('picker.loading')) : null,
               picker.status === 'error'
                 ? h(
@@ -5467,48 +5586,14 @@ body.dsd-immersive { overflow:hidden !important; }
                   )
                 : null,
               picker.status === 'ready' && pickerRows.length === 0 ? h('div', { className: 'dsd-picker-status' }, t('picker.empty')) : null,
-              picker.status === 'ready'
-                ? pickerRows.map((file) => {
-                    const inLibrary = Boolean(library.items[file.path])
-                    const checked = picker.selected.has(file.path)
-                    return h(
-                      'div',
-                      { key: file.path, className: 'dsd-picker-row', 'data-added': inLibrary ? 'true' : 'false' },
-                      h(
-                        'button',
-                        {
-                          className: 'dsd-picker-check',
-                          type: 'button',
-                          role: 'checkbox',
-                          'aria-checked': checked ? 'true' : 'false',
-                          'aria-label': file.name,
-                          disabled: inLibrary,
-                          onClick: () => togglePicked(file.path),
-                        },
-                        checked ? icon('check', 12) : null,
-                      ),
-                      h('span', { className: 'dsd-picker-kind', 'data-kind': file.kind || fileKind(file.path) }, fileKindChip(file.path)),
-                      h(
-                        'button',
-                        { className: 'dsd-picker-text', type: 'button', onClick: () => (inLibrary ? openPreview(file) : togglePicked(file.path)) },
-                        h('span', { className: 'dsd-picker-name' }, file.name),
-                        h('span', { className: 'dsd-picker-path', title: file.path }, `${file.rootTitle} / ${file.rel}`),
-                      ),
-                      h(
-                        'button',
-                        {
-                          className: 'dsd-picker-preview',
-                          type: 'button',
-                          title: t('picker.preview'),
-                          'aria-label': `${t('picker.preview')} ${file.name}`,
-                          onClick: () => openPreview(file),
-                        },
-                        icon('eye', 13),
-                      ),
-                      inLibrary ? h('span', { className: 'dsd-picker-added' }, t('picker.added')) : null,
-                      h('span', { className: 'dsd-picker-meta' }, `${formatTime(file.mtime)} · ${formatSize(file.size)}`),
-                    )
-                  })
+              picker.status === 'ready' && pickerRows.length > 0
+                ? h(
+                    'div',
+                    { className: 'dsd-picker-virtual', style: { height: `${pickerRows.length * PICKER_ROW_HEIGHT}px` } },
+                    pickerRows
+                      .slice(pickerViewRange.start, pickerViewRange.end)
+                      .map((file, offset) => renderPickerRow(file, pickerViewRange.start + offset)),
+                  )
                 : null,
             ),
             h(
