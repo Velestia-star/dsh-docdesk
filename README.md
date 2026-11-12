@@ -191,6 +191,7 @@ Data and limits:
 - Every route sits behind the same loopback / paired-device fence used by the bundled management pages and rejects forwarding headers. Requests are confined to scanned workspace roots, only whitelisted extensions are served, paths containing hidden dot-segments are rejected, and text previews are capped at 2 MB.
 - The scan skips `node_modules`, `.git`, build output and virtual environments. Current caps are 3,000 files per scan, 4,000 directories per workspace, 16,000 directories in total and 6 levels of depth. Image, audio, video and PDF candidates are additionally capped at 1,200 items so media cannot crowd documents out of the picker.
 - Bookmarks and line highlights stay Markdown-only; plain text keeps the last-read position and bar but has no line bookmarks. Images, HTML, PDF and media are plain viewers.
+- Entries added from a delivered file card can live outside every scanned workspace (a session directory that went cold after a restart, or a project folder never registered as a workspace). Such files open read-only through DSH's browser-authenticated `/api/file` channel: Markdown and text render normally, images/PDF/audio/video use it as the preview source, and HTML falls back to a file card because sibling assets cannot load through that channel. Files inside the workspaces keep using the plugin's confined routes.
 - The sidebar handle calls the host's `layout.toggleSidebar()`. The collapsed state is the host's rail, not a custom zero-width column.
 
 ## Screenshots

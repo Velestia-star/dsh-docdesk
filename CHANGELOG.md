@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2 — 2026-11-12
+
+- Files added from a delivered file card now open even when their folder is outside every scanned workspace — for example a session directory that went cold after a DSH restart, or a project folder that was never registered as a workspace. Instead of failing with `outside-workspace`, the reader falls back to DSH's browser-authenticated `/api/file` channel, the same one the chat file preview uses.
+  - Markdown and text are fetched through that channel and rendered by the existing readers; images, PDF, audio and video use its URL.
+  - HTML outside the workspaces cannot load sibling CSS/JS/images through that channel, so it opens as a file card with **Open in new tab**.
+  - When an image or media element still fails to load, the reader explains it and offers **Open in new tab** instead of leaving a broken element in place.
+- Reads and downloads for files inside the scanned workspaces keep using the plugin's confined routes; nothing about that path changed.
+
 ## 0.4.1 — 2026-11-12
 
 - A half-updated plugin now explains itself. A browser refresh only reloads the client half, so when the running Host still predates 0.4, opening an image/HTML/PDF/media file no longer shows the raw `not-markdown` error: the reader says to fully quit and reopen DSH Desktop. The picker shows the same notice above its list when the Host response has no per-file `kind`.

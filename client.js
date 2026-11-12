@@ -63,6 +63,7 @@ window.__ModuleLoader__.load({
 - 文件顺序、文件夹、书签和阅读位置保存在当前浏览器。
 - 书签位置按文件绝对路径保存；文件移动后旧书签不会自动跟随。
 - 单个文本预览最多显示前 2 MB；更大的文件请用下载或新标签打开。
+- 从文件卡片加入、位于工作区之外的文件通过 Harness 文件通道只读打开；HTML 会显示为文件卡片。
 - 说明书本身也可以像普通文档一样重命名或移出资料区；移出后不会再次自动加入。`
 
     const ICON_W = 88
@@ -171,6 +172,9 @@ window.__ModuleLoader__.load({
       'doc.audioHint': '音频文件，可以直接播放。',
       'doc.videoHint': '视频文件，可以直接播放。',
       'doc.unsupported': '这个格式无法内嵌预览，可以在新标签打开或下载。',
+      'doc.externalNote': '这个文件在当前工作区之外，通过 Harness 文件通道只读打开；相对资源、下载和拖动进度可能不可用。',
+      'doc.externalHtml': '工作区外的 HTML 无法加载同目录的样式、脚本和图片，已显示为文件卡片；点「在新标签打开」查看它的内容。',
+      'doc.mediaFailed': '这个文件没能加载：可能已被移动，或 Harness 文件通道拒绝了访问。',
       'doc.mediaMeta': '{kind} · {size}',
       'pathDrop.title': '移动到文件夹',
       'pathDrop.hint': '移到路径上，松开鼠标放入',
@@ -230,6 +234,7 @@ window.__ModuleLoader__.load({
       'error.outside': '文件不在可访问的目录内',
       'error.notFound': '文件不存在',
       'error.unsupported': '不支持的文件类型',
+      'error.externalDenied': '这个文件在工作区之外，Harness 文件通道拒绝了访问。',
       'error.hostStale': '宿主插件还是旧版本，完全退出并重新打开 DSH Desktop 后再试',
       'picker.staleHost': '宿主插件还是旧版本：图片、HTML、PDF 和音视频要等完全重启 DSH Desktop 后才能打开；只刷新页面只会更新客户端。',
       'sidebar.toggle': '隐藏 / 显示侧边栏',
@@ -331,6 +336,9 @@ window.__ModuleLoader__.load({
       'doc.audioHint': 'Audio file, ready to play.',
       'doc.videoHint': 'Video file, ready to play.',
       'doc.unsupported': 'This format cannot be previewed inline. Open it in a new tab or download it.',
+      'doc.externalNote': 'This file lives outside the scanned workspaces and opens read-only through the Harness file channel; relative assets, downloads and media seeking may be unavailable.',
+      'doc.externalHtml': 'HTML outside the workspaces cannot load its sibling styles, scripts and images, so it is shown as a file card; use Open in new tab to read it.',
+      'doc.mediaFailed': 'This file could not be loaded: it may have moved, or the Harness file channel denied access.',
       'doc.mediaMeta': '{kind} · {size}',
       'pathDrop.title': 'Move to folder',
       'pathDrop.hint': 'Hover a path segment, then release to move',
@@ -390,6 +398,7 @@ window.__ModuleLoader__.load({
       'error.outside': 'The file is outside the readable folders',
       'error.notFound': 'File not found',
       'error.unsupported': 'Unsupported file type',
+      'error.externalDenied': 'This file is outside the scanned workspaces and the Harness file channel denied access.',
       'error.hostStale': 'The Host plugin is still on the previous build. Fully quit and reopen DSH Desktop, then try again.',
       'picker.staleHost': 'The Host plugin is still on the previous build: images, HTML, PDF and media need a full DSH Desktop restart. Refreshing the page only updates the client.',
       'sidebar.toggle': 'Hide / show sidebar',
@@ -511,8 +520,51 @@ window.__ModuleLoader__.load({
       return 'other'
     }
 
+    const DSH_FILE_ROUTE = '/api/file'
+    const MAX_TEXT_CHARS = 2 * 1024 * 1024
+
     function fileUrl(value, download) {
       return `${API_FILE}?path=${encodeURIComponent(value)}${download ? '&download=1' : ''}`
+    }
+
+    /** DSH's browser-authenticated file channel, used by the chat file preview. */
+    function harnessFileUrl(value) {
+      return `${DSH_FILE_ROUTE}?path=${encodeURIComponent(value)}`
+    }
+
+    /**
+     * A library entry can come from a delivered file card whose session
+     * directory is no longer a scan root (the session went cold, or the folder
+     * was never registered as a workspace). DSH's own `/api/file` channel is
+     * authenticated by the browser session and reads workspace-external paths,
+     * exactly like the chat preview, so out-of-root entries fall back to it
+     * instead of failing with outside-workspace.
+     */
+    async function loadExternalDoc(pathValue, kind, signal) {
+      const url = harnessFileUrl(pathValue)
+      const base = {
+        status: 'ready',
+        path: pathValue,
+        name: basename(pathValue),
+        kind,
+        ext: fileExt(pathValue),
+        mime: '',
+        url,
+        external: true,
+        content: '',
+        truncated: false,
+        size: undefined,
+        mtime: undefined,
+      }
+      if (kind !== 'markdown' && kind !== 'text') return base
+      const response = await fetch(url, { signal, credentials: 'same-origin' })
+      if (!response.ok) {
+        throw new Error(response.status === 401 || response.status === 403 ? t('error.externalDenied') : `HTTP ${response.status}`)
+      }
+      let content = await response.text()
+      const truncated = content.length > MAX_TEXT_CHARS
+      if (truncated) content = content.slice(0, MAX_TEXT_CHARS)
+      return { ...base, content, truncated, size: truncated ? undefined : content.length }
     }
 
     function versionedUrl(url, version) {
@@ -2452,6 +2504,7 @@ body.dsd-immersive { overflow:hidden !important; }
       const [doc, setDoc] = useState({ status: 'idle' })
       const [docReload, setDocReload] = useState(0)
       const [imageZoom, setImageZoom] = useState(false)
+      const [mediaError, setMediaError] = useState(false)
       const [search, setSearch] = useState('')
       const [toast, setToast] = useState(null)
       const [confirmState, setConfirmState] = useState(null)
@@ -3046,6 +3099,13 @@ body.dsd-immersive { overflow:hidden !important; }
             const body = await response.json().catch(() => null)
             if (!response.ok) {
               const code = body && body.error
+              const kind = fileKind(activePath)
+              if (code === 'outside-workspace' && kind !== 'unknown') {
+                const external = await loadExternalDoc(activePath, kind, controller.signal)
+                docCache.current.set(activePath, external)
+                setDoc(external)
+                return
+              }
               const reason =
                 code === 'not-markdown'
                   ? t('error.hostStale')
@@ -3079,7 +3139,8 @@ body.dsd-immersive { overflow:hidden !important; }
 
       useEffect(() => {
         setImageZoom(false)
-      }, [activePath])
+        setMediaError(false)
+      }, [activePath, docReload])
 
       useEffect(() => {
         if (bookmarkable) return
@@ -4564,7 +4625,7 @@ body.dsd-immersive { overflow:hidden !important; }
         const pathSeparator = Math.max(activePath.lastIndexOf('\\'), activePath.lastIndexOf('/'))
         const docDir = activePath === GUIDE_PATH || pathSeparator <= 0 ? '' : activePath.slice(0, pathSeparator)
         const docUrl = docReady && doc.url ? doc.url : fileUrl(activePath)
-        const mediaUrl = versionedUrl(docUrl, docReload)
+        const mediaUrl = doc.external ? `${docUrl}${docUrl.includes('?') ? '&' : '?'}r=${docReload}` : versionedUrl(docUrl, docReload)
         const kindLabel = (KIND_CHIP[kind] || fileExt(activePath).toUpperCase() || 'FILE')
         const meta = `${kindLabel} · ${formatSize(docReady ? doc.size : 0)} · ${formatTime(doc.mtime)}`
         const openExternal = () => {
@@ -4595,6 +4656,22 @@ body.dsd-immersive { overflow:hidden !important; }
             },
             icon(name, 14),
           )
+        const mediaCard = (iconName, note) =>
+          h(
+            'div',
+            { className: 'dsd-filecard' },
+            h('div', { className: 'dsd-media-badge' }, icon(iconName, 38)),
+            h('div', { className: 'dsd-media-title' }, doc.name || basename(activePath)),
+            h('div', { className: 'dsd-media-note' }, note),
+            h(
+              'div',
+              { className: 'dsd-filecard-actions' },
+              h('button', { className: 'dsd-btn', type: 'button', onClick: openExternal }, icon('external', 14), h('span', null, t('doc.openExternal'))),
+              !doc.external
+                ? h('button', { className: 'dsd-btn', type: 'button', onClick: download }, icon('download', 14), h('span', null, t('doc.download')))
+                : null,
+            ),
+          )
         const renderReady = () => {
           if (kind === 'markdown' || kind === 'text') {
             const empty = doc.content.trim() === ''
@@ -4610,6 +4687,7 @@ body.dsd-immersive { overflow:hidden !important; }
             )
           }
           if (kind === 'image') {
+            if (mediaError) return mediaCard('image', t('doc.mediaFailed'))
             return h(
               'div',
               { className: 'dsd-media', 'data-zoom': imageZoom ? 'true' : 'false' },
@@ -4620,11 +4698,26 @@ body.dsd-immersive { overflow:hidden !important; }
                 'data-zoom': imageZoom ? 'true' : 'false',
                 title: imageZoom ? t('doc.imageZoomOut') : t('doc.imageZoomIn'),
                 onClick: () => setImageZoom((value) => !value),
+                onError: () => setMediaError(true),
               }),
               h('div', { className: 'dsd-media-note' }, t('doc.imageHint')),
             )
           }
           if (kind === 'html') {
+            if (doc.external) {
+              return h(
+                'div',
+                { className: 'dsd-filecard' },
+                h('div', { className: 'dsd-media-badge' }, icon('globe', 38)),
+                h('div', { className: 'dsd-media-title' }, doc.name || basename(activePath)),
+                h('div', { className: 'dsd-media-note' }, t('doc.externalHtml')),
+                h(
+                  'div',
+                  { className: 'dsd-filecard-actions' },
+                  h('button', { className: 'dsd-btn', type: 'button', onClick: openExternal }, icon('external', 14), h('span', null, t('doc.openExternal'))),
+                ),
+              )
+            }
             return h(
               'div',
               { className: 'dsd-embed' },
@@ -4653,20 +4746,22 @@ body.dsd-immersive { overflow:hidden !important; }
             )
           }
           if (kind === 'audio') {
+            if (mediaError) return mediaCard('audio', t('doc.mediaFailed'))
             return h(
               'div',
               { className: 'dsd-media' },
               h('div', { className: 'dsd-media-badge' }, icon('audio', 38)),
               h('div', { className: 'dsd-media-title' }, doc.name || basename(activePath)),
               h('div', { className: 'dsd-media-note' }, t('doc.audioHint')),
-              h('audio', { className: 'dsd-audio', src: mediaUrl, controls: true, preload: 'metadata' }),
+              h('audio', { className: 'dsd-audio', src: mediaUrl, controls: true, preload: 'metadata', onError: () => setMediaError(true) }),
             )
           }
           if (kind === 'video') {
+            if (mediaError) return mediaCard('video', t('doc.mediaFailed'))
             return h(
               'div',
               { className: 'dsd-media' },
-              h('video', { className: 'dsd-video', src: mediaUrl, controls: true, preload: 'metadata', playsInline: true }),
+              h('video', { className: 'dsd-video', src: mediaUrl, controls: true, preload: 'metadata', playsInline: true, onError: () => setMediaError(true) }),
               h('div', { className: 'dsd-media-note' }, t('doc.videoHint')),
             )
           }
@@ -4753,7 +4848,7 @@ body.dsd-immersive { overflow:hidden !important; }
                     icon('refresh', 14),
                   ),
                   activePath !== GUIDE_PATH && !canRead ? pathButton('external', t('doc.openExternal'), openExternal) : null,
-                  activePath !== GUIDE_PATH ? pathButton('download', t('doc.download'), download) : null,
+                  activePath !== GUIDE_PATH && !doc.external ? pathButton('download', t('doc.download'), download) : null,
                   h(
                     'button',
                     {
@@ -4769,6 +4864,7 @@ body.dsd-immersive { overflow:hidden !important; }
                     icon(immersive ? 'collapse' : 'expand', 14),
                   ),
                 ),
+                doc.external ? h('div', { className: 'dsd-doc-note' }, t('doc.externalNote')) : null,
                 doc.status === 'loading' || (doc.status === 'ready' && !docReady) ? h('div', { className: 'dsd-doc-loading' }, t('doc.loading')) : null,
                 doc.status === 'error' && doc.path === activePath
                   ? h(
